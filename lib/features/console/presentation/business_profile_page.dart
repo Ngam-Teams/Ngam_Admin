@@ -1,0 +1,797 @@
+// =============================================================================
+// BusinessProfilePage
+// Full-screen view of a business's complete registration profile including
+// core identity, compliance, and settings data per the Ngam schema.
+// =============================================================================
+
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:hugeicons/hugeicons.dart';
+import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+
+import '../models/business_summary_model.dart';
+
+class BusinessProfilePage extends StatelessWidget {
+  final BusinessSummaryModel business;
+
+  const BusinessProfilePage({super.key, required this.business});
+
+  // ---------------------------------------------------------------------------
+  // Glass helpers
+  // ---------------------------------------------------------------------------
+
+  static LiquidGlassSettings _glass({double blur = 2.0}) => LiquidGlassSettings(
+    thickness: 0.1,
+    blur: blur,
+    refractiveIndex: 1.0,
+    glassColor: Colors.transparent,
+    lightAngle: 45.0,
+    lightIntensity: 0.1,
+    ambientStrength: 1.0,
+    saturation: 1.0,
+    chromaticAberration: 0.0,
+  );
+
+  static Widget _glassCard({
+    required Widget child,
+    double radius = 16.0,
+    EdgeInsetsGeometry? padding,
+    Color? overrideColor,
+    Color? overrideBorder,
+  }) {
+    return GlassContainer(
+      useOwnLayer: true,
+      quality: GlassQuality.standard,
+      shape: LiquidRoundedSuperellipse(borderRadius: radius),
+      settings: _glass(),
+      child: Container(
+        padding: padding,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(radius),
+          color: overrideColor ?? Colors.white.withValues(alpha: 0.05),
+          border: Border.all(
+            color: overrideBorder ?? Colors.white.withValues(alpha: 0.12),
+            width: 1.0,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.15),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: child,
+      ),
+    );
+  }
+
+  // ---------------------------------------------------------------------------
+  // UI helpers
+  // ---------------------------------------------------------------------------
+
+  static Widget _sectionHeader(String title, dynamic icon, Color color) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12, top: 4),
+      child: Row(
+        children: [
+          HugeIcon(icon: icon, color: color, size: 18, strokeWidth: 2.0),
+          const SizedBox(width: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: color,
+              fontSize: 13,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 0.8,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _field(
+    String label,
+    String? value, {
+    bool isMonospace = false,
+    bool copyable = false,
+    BuildContext? context,
+  }) {
+    final display = (value == null || value.isEmpty) ? '—' : value;
+    final isMissing = value == null || value.isEmpty;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 148,
+            child: Text(
+              label,
+              style: TextStyle(
+                color: Colors.white.withValues(alpha: 0.4),
+                fontSize: 12,
+              ),
+            ),
+          ),
+          Expanded(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: Text(
+                    display,
+                    style: TextStyle(
+                      color: isMissing
+                          ? Colors.white.withValues(alpha: 0.2)
+                          : Colors.white,
+                      fontFamily: isMonospace ? 'monospace' : null,
+                      fontSize: 12,
+                      fontWeight: isMissing ? FontWeight.w400 : FontWeight.w600,
+                      fontStyle: isMissing
+                          ? FontStyle.italic
+                          : FontStyle.normal,
+                    ),
+                  ),
+                ),
+                if (copyable && !isMissing && context != null) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () {
+                      Clipboard.setData(ClipboardData(text: value));
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('$label copied!'),
+                          behavior: SnackBarBehavior.floating,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    },
+                    child: const HugeIcon(
+                      icon: HugeIcons.strokeRoundedCopy01,
+                      color: Colors.cyanAccent,
+                      size: 14,
+                      strokeWidth: 2.1,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  static Widget _divider() =>
+      Divider(color: Colors.white.withValues(alpha: 0.06), height: 1);
+
+  static Widget _buildMiniStat(String label, String value, dynamic icon) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        HugeIcon(icon: icon, color: const Color(0xFF42A5F5), size: 18),
+        const SizedBox(height: 4),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.5),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  static Widget _chip(String label, Color color, [dynamic icon]) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+    decoration: BoxDecoration(
+      color: color.withValues(alpha: 0.15),
+      borderRadius: BorderRadius.circular(8),
+      border: Border.all(color: color.withValues(alpha: 0.4)),
+    ),
+    child: Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (icon != null) ...[
+          HugeIcon(icon: icon, color: color, size: 12),
+          const SizedBox(width: 4),
+        ],
+        Text(
+          label,
+          style: TextStyle(
+            color: color,
+            fontSize: 11,
+            fontWeight: FontWeight.bold,
+            letterSpacing: 0.5,
+          ),
+        ),
+      ],
+    ),
+  );
+
+  String _formatDate(DateTime dt) =>
+      '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')}';
+
+  // ---------------------------------------------------------------------------
+  // Build
+  // ---------------------------------------------------------------------------
+
+  @override
+  Widget build(BuildContext context) {
+    final categoryColor = const Color(0xFF42A5F5);
+
+    final statusColor = switch (business.status.toLowerCase()) {
+      'active' => Colors.greenAccent,
+      'suspended' => Colors.redAccent,
+      _ => Colors.amberAccent,
+    };
+
+    final previewCoverUrl = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1200&auto=format&fit=crop';
+    final previewLogoUrl = 'https://images.unsplash.com/photo-1560159906-839556708fb5?q=80&w=200&auto=format&fit=crop';
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0A0A14),
+      body: Stack(
+        children: [
+          CustomScrollView(
+            slivers: [
+              // ── App Bar (Cover Image Only) ──────────────────────────────────
+              // ── App Bar (Dynamic Collapsible Header) ─────────────────────────
+              SliverAppBar(
+                expandedHeight: 280.0,
+                pinned: true,
+                backgroundColor: Colors.transparent, // Allow body content to show underneath when scrolled
+                surfaceTintColor: Colors.transparent,
+                shadowColor: Colors.transparent,
+                elevation: 0,
+                leading: const SizedBox.shrink(),
+                flexibleSpace: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final top = constraints.biggest.height;
+                    final expandedHeight = 280.0;
+                    final collapsedHeight = MediaQuery.of(context).padding.top + kToolbarHeight;
+                    
+                    double collapsePercent = (expandedHeight - top) / (expandedHeight - collapsedHeight);
+                    collapsePercent = collapsePercent.clamp(0.0, 1.0);
+
+                    return Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        // Background image & gradient (Fades out when scrolling up)
+                        Opacity(
+                          opacity: (1.0 - collapsePercent).clamp(0.0, 1.0),
+                          child: Stack(
+                            fit: StackFit.expand,
+                            children: [
+                              if (previewCoverUrl != null)
+                                Image.network(previewCoverUrl, fit: BoxFit.cover)
+                              else
+                                Container(
+                                  decoration: BoxDecoration(
+                                    gradient: LinearGradient(
+                                      begin: Alignment.topLeft,
+                                      end: Alignment.bottomRight,
+                                      colors: [
+                                        categoryColor.withValues(alpha: 0.2),
+                                        const Color(0xFF0A0A14),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              // Dark gradient overlay for text readability
+                              Container(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      const Color(0xFF0A0A14).withValues(alpha: 0.3),
+                                      const Color(0xFF0A0A14).withValues(alpha: 0.6),
+                                      const Color(0xFF0A0A14).withValues(alpha: 1.0),
+                                    ],
+                                    stops: const [0.0, 0.6, 1.0],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        // Expanded Content (Fades out quickly)
+                        Positioned(
+                          left: 16,
+                          right: 16,
+                          bottom: 16,
+                          child: Opacity(
+                            opacity: (1.0 - collapsePercent * 2).clamp(0.0, 1.0),
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                // Business Name & Label
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      if (previewLogoUrl != null) ...[
+                                        Container(
+                                          width: 64,
+                                          height: 64,
+                                          decoration: BoxDecoration(
+                                            shape: BoxShape.circle,
+                                            border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 2),
+                                            image: DecorationImage(
+                                              image: NetworkImage(previewLogoUrl),
+                                              fit: BoxFit.cover,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 12),
+                                      ],
+                                      Text(
+                                        business.businessName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                      const SizedBox(height: 8),
+                                      Row(
+                                        children: [
+                                          _chip(
+                                            business.subscriptionTier.toUpperCase(),
+                                            const Color(0xFF42A5F5),
+                                            HugeIcons.strokeRoundedCrown,
+                                          ),
+                                          const SizedBox(width: 6),
+                                          _chip(
+                                            business.status.toUpperCase(),
+                                            statusColor,
+                                          ),
+                                        ],
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Phone/WhatsApp actions (Expanded)
+                                GlassContainer(
+                                  useOwnLayer: true,
+                                  quality: GlassQuality.standard,
+                                  shape: const LiquidRoundedSuperellipse(borderRadius: 24.0),
+                                  settings: const LiquidGlassSettings(
+                                    thickness: 0.1,
+                                    blur: 12.0,
+                                    refractiveIndex: 1.0,
+                                    glassColor: Colors.transparent,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                    ),
+                                    child: const Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        HugeIcon(icon: HugeIcons.strokeRoundedCall02, color: Colors.greenAccent, size: 20),
+                                        SizedBox(width: 12),
+                                        HugeIcon(icon: HugeIcons.strokeRoundedWhatsapp, color: Colors.greenAccent, size: 20),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+
+                        // Back Button - ALWAYS VISIBLE, fixed at top left
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 8,
+                          left: 16,
+                          child: GestureDetector(
+                            onTap: () => Navigator.pop(context),
+                            child: GlassContainer(
+                              useOwnLayer: true,
+                              quality: GlassQuality.standard,
+                              shape: const LiquidRoundedSuperellipse(borderRadius: 50.0),
+                              settings: const LiquidGlassSettings(
+                                thickness: 0.1,
+                                blur: 12.0,
+                                refractiveIndex: 1.0,
+                                glassColor: Colors.transparent,
+                              ),
+                              child: Container(
+                                height: 44,
+                                width: 44,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                ),
+                                alignment: Alignment.center,
+                                child: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.white, size: 20),
+                              ),
+                            ),
+                          ),
+                        ),
+
+                        // Collapsed Pill - Fades in, sits to the right of the back button
+                        Positioned(
+                          top: MediaQuery.of(context).padding.top + 8,
+                          left: 72, // 16 (padding) + 44 (back button width) + 12 (spacing)
+                          right: 16,
+                          child: Opacity(
+                            opacity: ((collapsePercent - 0.5) * 2).clamp(0.0, 1.0),
+                            child: GlassContainer(
+                              useOwnLayer: true,
+                              quality: GlassQuality.standard,
+                              shape: const LiquidRoundedSuperellipse(borderRadius: 30.0),
+                              settings: const LiquidGlassSettings(
+                                thickness: 0.1,
+                                blur: 15.0,
+                                refractiveIndex: 1.0,
+                                glassColor: Colors.transparent,
+                              ),
+                              child: Container(
+                                height: 44,
+                                padding: const EdgeInsets.only(left: 5, right: 16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.05),
+                                  borderRadius: BorderRadius.circular(30),
+                                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                ),
+                                alignment: Alignment.center,
+                                child: Row(
+                                  children: [
+                                    if (previewLogoUrl != null) ...[
+                                      Container(
+                                        width: 34,
+                                        height: 34,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                                          image: DecorationImage(
+                                            image: NetworkImage(previewLogoUrl),
+                                            fit: BoxFit.cover,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 10),
+                                    ],
+                                    Expanded(
+                                      child: Text(
+                                        business.businessName,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    GestureDetector(
+                                      onTap: () {},
+                                      child: const HugeIcon(icon: HugeIcons.strokeRoundedCall02, color: Colors.greenAccent, size: 18),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    GestureDetector(
+                                      onTap: () {},
+                                      child: const HugeIcon(icon: HugeIcons.strokeRoundedWhatsapp, color: Colors.greenAccent, size: 18),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
+                ),
+              ),
+
+              // ── Body ───────────────────────────────────────────────────────────
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(16, 8, 16, 40),
+                sliver: SliverList(
+                  delegate: SliverChildListDelegate([
+                    // ── Top Performance Summary ─────────────────────────────────
+                    _glassCard(
+                      radius: 20,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          const Text(
+                            'TOTAL REVENUE',
+                            style: TextStyle(
+                              color: Colors.white54,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 1.2,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'RM 45,290.00',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Container(
+                            height: 1,
+                            color: Colors.white.withValues(alpha: 0.1),
+                          ),
+                          const SizedBox(height: 16),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              _buildMiniStat('Rating', '4.8', HugeIcons.strokeRoundedStar),
+                              Container(width: 1, height: 32, color: Colors.white.withValues(alpha: 0.1)),
+                              _buildMiniStat('Bookings', '1,452', HugeIcons.strokeRoundedCalendar01),
+                              Container(width: 1, height: 32, color: Colors.white.withValues(alpha: 0.1)),
+                              _buildMiniStat('Customers', '892', HugeIcons.strokeRoundedUserGroup),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
+                    // ── Section 1: Core Identity ──────────────────────────────
+                    _sectionHeader(
+                      'CORE IDENTITY',
+                      HugeIcons.strokeRoundedBuilding01,
+                      const Color(0xFF42A5F5),
+                    ),
+                    _glassCard(
+                      radius: 18,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _field(
+                            'Business ID',
+                            business.id,
+                            isMonospace: true,
+                            copyable: true,
+                            context: context,
+                          ),
+                          _divider(),
+                          _field('Trading Name', business.businessName),
+                          _divider(),
+                          _field('Category', business.industry ?? 'Not set'),
+                          _divider(),
+                          _field(
+                            'SSM Number',
+                            business.registrationNumber,
+                            copyable: true,
+                            context: context,
+                          ),
+                          _divider(),
+                          _field(
+                            'SST Number',
+                            null,
+                          ), // not in current model, hardcoded null
+                          _divider(),
+                          _field('Status', business.status),
+                          _divider(),
+                          _field(
+                            'Registered On',
+                            _formatDate(business.createdAt),
+                          ),
+                          _divider(),
+                          _field(
+                            'Owner UID',
+                            business.ownerUserId,
+                            isMonospace: true,
+                            copyable: true,
+                            context: context,
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Section 2: Location ───────────────────────────────────
+                    _sectionHeader(
+                      'LOCATION',
+                      HugeIcons.strokeRoundedLocation01,
+                      const Color(0xFF42A5F5),
+                    ),
+                    _glassCard(
+                      radius: 18,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _field(
+                            'Address',
+                            business.city != null ? '${business.city}' : null,
+                          ),
+                          _divider(),
+                          _field('City', business.city),
+                          _divider(),
+                          _field('State', business.country),
+                          _divider(),
+                          _field('Postcode', null),
+                          _divider(),
+                          _field('Latitude', null),
+                          _divider(),
+                          _field('Longitude', null),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Section 3: Contact ────────────────────────────────────
+                    _sectionHeader(
+                      'CONTACT',
+                      HugeIcons.strokeRoundedCall,
+                      const Color(0xFF42A5F5),
+                    ),
+                    _glassCard(
+                      radius: 18,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _field('Phone', business.phone),
+                          _divider(),
+                          _field('Email', business.email),
+                          _divider(),
+                          _field('Website', business.website),
+                          _divider(),
+                          _field('Logo URL', business.logoUrl),
+                          _divider(),
+                          _field('Cover URL', business.coverUrl),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Section 4: Compliance ─────────────────────────────────
+                    _sectionHeader(
+                      'COMPLIANCE & BANKING',
+                      HugeIcons.strokeRoundedMoney02,
+                      const Color(0xFF42A5F5),
+                    ),
+                    _glassCard(
+                      radius: 18,
+                      padding: const EdgeInsets.all(16),
+                      overrideColor: Colors.amber.withValues(alpha: 0.04),
+                      overrideBorder: Colors.amber.withValues(alpha: 0.12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Padding(
+                            padding: const EdgeInsets.only(bottom: 10),
+                            child: Text(
+                              'Sensitive — visible to super admins only',
+                              style: TextStyle(
+                                color: Colors.amber.withValues(alpha: 0.6),
+                                fontSize: 11,
+                                fontStyle: FontStyle.italic,
+                              ),
+                            ),
+                          ),
+                          _field('Bank Name', null),
+                          _divider(),
+                          _field('Account Holder', null),
+                          _divider(),
+                          _field('Account Number', null, isMonospace: true),
+                          _divider(),
+                          _field('EPF Number', null, isMonospace: true),
+                          _divider(),
+                          _field('SOCSO Number', null, isMonospace: true),
+                          _divider(),
+                          _field('EIS Number', null, isMonospace: true),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Section 5: Settings ───────────────────────────────────
+                    _sectionHeader(
+                      'BUSINESS SETTINGS',
+                      HugeIcons.strokeRoundedSettings01,
+                      const Color(0xFF42A5F5),
+                    ),
+                    _glassCard(
+                      radius: 18,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _field('Halal Certified', null),
+                          _divider(),
+                          _field('Total Chairs', null),
+                          _divider(),
+                          _field('Slot Duration', '30 minutes (default)'),
+                          _divider(),
+                          _field('Operating Hours', 'Not configured'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // ── Section 6: Subscription ───────────────────────────────
+                    _sectionHeader(
+                      'SUBSCRIPTION',
+                      HugeIcons.strokeRoundedCrown,
+                      const Color(0xFF42A5F5),
+                    ),
+                    _glassCard(
+                      radius: 18,
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        children: [
+                          _field(
+                            'Plan',
+                            business.subscriptionTier[0].toUpperCase() +
+                                business.subscriptionTier.substring(1),
+                          ),
+                          _divider(),
+                          _field('Status', business.isActive ? 'Active' : (business.isTrial ? 'Trial' : 'Suspended')),
+                          _divider(),
+                          _field('Billing Cycle', 'Monthly'),
+                          _divider(),
+                          _field('Next Renewal', '12 Oct 2026'),
+                          _divider(),
+                          _field('Payment Method', 'Card ending in 4242'),
+                          _divider(),
+                          _field('Last Billed', 'RM 199.00'),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+
+                    // ── Close button ──────────────────────────────────────────
+                    GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: _glassCard(
+                        radius: 18,
+                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        child: const Center(
+                          child: Text(
+                            'Close',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ]),
+                ),
+              ),
+            ],
+          ),
+
+        ],
+      ),
+    );
+  }
+}

@@ -1,0 +1,37 @@
+name: ngam_console
+description: "Ngam Console – Super Admin portal for the multi-tenant SaaS ecosystem."
+publish_to: 'none'
+version: 0.1.0
+
+environment:
+  sdk: ^3.8.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # Supabase backend
+  supabase_flutter: ^2.8.4
+
+  # Navigation
+  go_router: ^15.1.2
+
+  # State management
+  flutter_riverpod: ^2.6.1
+
+  # UI utilities (frosted glass)
+  flutter_svg: ^2.0.10+1
+  liquid_glass_widgets: 0.5.0
+  hugeicons: ^1.1.7
+  http: ^1.6.0
+  flutter_dotenv: ^6.0.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^5.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - .env

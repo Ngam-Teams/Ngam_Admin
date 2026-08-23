@@ -118,14 +118,15 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  Container(
-                    constraints: const BoxConstraints(maxWidth: 400),
-                    child: TextField(
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 280, // More compact search bar
+                      margin: const EdgeInsets.only(right: 12),
+                      child: TextField(
                       controller: _searchController,
                       style: const TextStyle(color: Colors.white),
                       decoration: InputDecoration(
@@ -166,23 +167,27 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   _StatusChip(
                     label: 'All',
                     selected: _statusFilter == 'all',
                     onTap: () => _setStatusFilter('all'),
                   ),
+                  const SizedBox(width: 8),
                   _StatusChip(
                     label: 'Active',
                     selected: _statusFilter == 'active',
                     color: Colors.greenAccent,
                     onTap: () => _setStatusFilter('active'),
                   ),
+                  const SizedBox(width: 8),
                   _StatusChip(
                     label: 'Suspended',
                     selected: _statusFilter == 'suspended',
                     color: Colors.redAccent,
                     onTap: () => _setStatusFilter('suspended'),
                   ),
+                  const SizedBox(width: 8),
                   // Refresh
                   IconButton(
                     icon: const HugeIcon(
@@ -195,8 +200,9 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                     onPressed: _loadBusinesses,
                   ),
                 ],
-              ),
-            ),
+              ), // closes Row
+            ), // closes SingleChildScrollView
+          ), // closes Container
           ),
         ),
         const SizedBox(height: 24),

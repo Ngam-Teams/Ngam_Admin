@@ -8,6 +8,9 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 
+import 'package:intl/intl.dart';
+
+import '../data/api_service.dart';
 import 'business_directory_view.dart';
 import 'billing_view.dart';
 import 'db_health_view.dart';
@@ -248,35 +251,46 @@ class _DashboardState extends State<Dashboard> {
   // ---------------------------------------------------------------------------
 
   Widget _buildOverviewPage(bool isDesktop) {
-    final cards = [
-      const StatCard(
-        label: 'Monthly Recurring Revenue',
-        value: '\$0.00',
-        subtitle: '↑ Connect Stripe to track MRR',
-        icon: HugeIcons.strokeRoundedChartIncrease,
-        accentColor: Color(0xFF6C63FF),
-      ),
-      const StatCard(
-        label: 'Total Businesses',
-        value: '—',
-        subtitle: 'Registered businesses',
-        icon: HugeIcons.strokeRoundedBuilding03,
-        accentColor: Color(0xFF4ECDC4),
-      ),
-      const StatCard(
-        label: 'Active Subscriptions',
-        value: '—',
-        subtitle: 'Active / Trial businesses',
-        icon: HugeIcons.strokeRoundedTickDouble01,
-        accentColor: Color(0xFF44CF6C),
-      ),
-      const StatCard(
-        label: 'Suspended Accounts',
-        value: '—',
-        icon: HugeIcons.strokeRoundedCancel01,
-        accentColor: Color(0xFFFF6B6B),
-      ),
-    ];
+    return FutureBuilder<Map<String, dynamic>>(
+      future: ApiService().fetchDashboardStats(),
+      builder: (context, snapshot) {
+        final data = snapshot.data;
+        final formatCurrency = NumberFormat.currency(locale: 'en_MY', symbol: 'RM ');
+
+        final rev = data?['platformRevenue'] ?? 0.0;
+        final businesses = data?['totalBusinesses']?.toString() ?? '—';
+        final active = data?['activeCount']?.toString() ?? '—';
+        final suspended = data?['suspendedCount']?.toString() ?? '—';
+
+        final cards = [
+          StatCard(
+            label: 'Platform Revenue',
+            value: data == null ? '...' : formatCurrency.format(rev),
+            subtitle: '↑ Expected collection this month',
+            icon: HugeIcons.strokeRoundedChartIncrease,
+            accentColor: const Color(0xFF6C63FF),
+          ),
+          StatCard(
+            label: 'Total Businesses',
+            value: data == null ? '...' : businesses,
+            subtitle: 'Registered businesses',
+            icon: HugeIcons.strokeRoundedBuilding03,
+            accentColor: const Color(0xFF4ECDC4),
+          ),
+          StatCard(
+            label: 'Active Subscriptions',
+            value: data == null ? '...' : active,
+            subtitle: 'Active / Trial businesses',
+            icon: HugeIcons.strokeRoundedTickDouble01,
+            accentColor: const Color(0xFF44CF6C),
+          ),
+          StatCard(
+            label: 'Suspended Accounts',
+            value: data == null ? '...' : suspended,
+            icon: HugeIcons.strokeRoundedCancel01,
+            accentColor: const Color(0xFFFF6B6B),
+          ),
+        ];
 
     return LayoutBuilder(
       builder: (context, constraints) {
@@ -326,12 +340,25 @@ class _DashboardState extends State<Dashboard> {
                     _buildQuickActions(),
                   ],
                 ),
+              // 3. Optional loading/error indicator
+              if (snapshot.connectionState == ConnectionState.waiting)
+                const Padding(
+                  padding: EdgeInsets.all(16.0),
+                  child: Center(child: CircularProgressIndicator(color: Color(0xFF6C63FF))),
+                )
+              else if (snapshot.hasError)
+                Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: Text('Error loading stats: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)),
+                ),
             ],
           ),
         );
-      },
-    );
-  }
+      }, // closes LayoutBuilder builder
+    ); // closes LayoutBuilder
+      }, // closes FutureBuilder builder
+    ); // closes FutureBuilder
+  } // closes _buildOverviewPage
 
   Widget _buildResponsiveStatCards(List<Widget> cards, int crossAxisCount) {
     if (crossAxisCount == 4) {

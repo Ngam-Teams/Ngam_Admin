@@ -22,10 +22,3 @@ CREATE POLICY "Users read own role"
   ON public.user_roles FOR SELECT TO authenticated
   USING (auth.uid() = user_id);
 
--- 4. Create a secure view for Super Admins to see all tenants
---    (aggregates the public.tenants table for the Ngam Console dashboard)
-CREATE OR REPLACE VIEW public.admin_tenant_view AS
-SELECT t.*
-FROM   public.tenants t
-JOIN   public.user_roles ur ON ur.user_id = auth.uid()
-WHERE  ur.role = 'super_admin';

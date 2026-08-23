@@ -63,52 +63,51 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
     )
 
-    const { action, tenantId } = await req.json()
+    const { action, businessId, tier } = await req.json()
 
-    // --- Action: suspend_tenant -----------------------------------------------
-    if (action === 'suspend_tenant') {
+    // --- Action: suspend_business -----------------------------------------------
+    if (action === 'suspend_business') {
       const { error } = await supabaseAdmin
-        .from('tenants')
+        .from('businesses')
         .update({ status: 'suspended' })
-        .eq('id', tenantId)
+        .eq('id', businessId)
 
       if (error) throw error
 
       return new Response(
-        JSON.stringify({ success: true, message: `Tenant ${tenantId} suspended` }),
+        JSON.stringify({ success: true, message: `Business ${businessId} suspended` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // --- Action: upgrade_tenant -----------------------------------------------
-    if (action === 'upgrade_tenant') {
-      const { tier } = await req.json()
+    // --- Action: upgrade_business -----------------------------------------------
+    if (action === 'upgrade_business') {
       const { error } = await supabaseAdmin
-        .from('tenants')
-        .update({ subscription_tier: tier })
-        .eq('id', tenantId)
+        .from('businesses')
+        .update({ business_subscription_tier: tier })
+        .eq('id', businessId)
 
       if (error) throw error
 
       return new Response(
-        JSON.stringify({ success: true, message: `Tenant ${tenantId} upgraded to ${tier}` }),
+        JSON.stringify({ success: true, message: `Business ${businessId} upgraded to ${tier}` }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
 
-    // --- Action: impersonate_tenant -------------------------------------------
-    // Returns the tenant row so the Flutter app can locally inherit the tenant_id
-    if (action === 'get_tenant_session') {
+    // --- Action: get_business_session -------------------------------------------
+    // Returns the business row so the Flutter app can locally inherit the business session
+    if (action === 'get_business_session') {
       const { data, error } = await supabaseAdmin
-        .from('tenants')
+        .from('businesses')
         .select('*')
-        .eq('id', tenantId)
+        .eq('id', businessId)
         .single()
 
       if (error) throw error
 
       return new Response(
-        JSON.stringify({ success: true, tenant: data }),
+        JSON.stringify({ success: true, business: data }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }

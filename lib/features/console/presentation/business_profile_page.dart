@@ -9,12 +9,32 @@ import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
+import '../data/api_service.dart';
 import '../models/business_summary_model.dart';
 
-class BusinessProfilePage extends StatelessWidget {
+class BusinessProfilePage extends StatefulWidget {
   final BusinessSummaryModel business;
 
   const BusinessProfilePage({super.key, required this.business});
+
+  @override
+  State<BusinessProfilePage> createState() => _BusinessProfilePageState();
+}
+
+class _BusinessProfilePageState extends State<BusinessProfilePage> {
+  late ScrollController _scrollController;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    super.dispose();
+  }
 
   // ---------------------------------------------------------------------------
   // Glass helpers
@@ -232,6 +252,7 @@ class BusinessProfilePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final business = widget.business;
     final categoryColor = const Color(0xFF42A5F5);
 
     final statusColor = switch (business.status.toLowerCase()) {
@@ -240,15 +261,34 @@ class BusinessProfilePage extends StatelessWidget {
       _ => Colors.amberAccent,
     };
 
-    final previewCoverUrl = 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1200&auto=format&fit=crop';
-    final previewLogoUrl = 'https://images.unsplash.com/photo-1560159906-839556708fb5?q=80&w=200&auto=format&fit=crop';
+    final previewCoverUrl = business.coverUrl ?? 'https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?q=80&w=1200&auto=format&fit=crop';
+    final previewLogoUrl = business.logoUrl ?? 'https://images.unsplash.com/photo-1599305445671-ac291c95aaa9?w=200&auto=format&fit=crop';
 
     return Scaffold(
       backgroundColor: const Color(0xFF0A0A14),
       body: Stack(
         children: [
-          CustomScrollView(
-            slivers: [
+          NotificationListener<ScrollEndNotification>(
+            onNotification: (notification) {
+              if (notification.depth == 0) {
+                final offset = _scrollController.offset;
+                const snapOffset = 224.0; // expandedHeight (280) - collapsedHeight (56)
+                
+                if (offset > 0 && offset < snapOffset) {
+                  Future.microtask(() {
+                    if (offset > (snapOffset / 2)) {
+                      _scrollController.animateTo(snapOffset, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+                    } else {
+                      _scrollController.animateTo(0, duration: const Duration(milliseconds: 250), curve: Curves.easeOut);
+                    }
+                  });
+                }
+              }
+              return false;
+            },
+            child: CustomScrollView(
+              controller: _scrollController,
+              slivers: [
               // ── App Bar (Cover Image Only) ──────────────────────────────────
               // ── App Bar (Dynamic Collapsible Header) ─────────────────────────
               SliverAppBar(
@@ -277,7 +317,7 @@ class BusinessProfilePage extends StatelessWidget {
                           child: Stack(
                             fit: StackFit.expand,
                             children: [
-                              if (previewCoverUrl != null)
+                              if (previewCoverUrl.isNotEmpty)
                                 Image.network(previewCoverUrl, fit: BoxFit.cover)
                               else
                                 Container(
@@ -327,7 +367,7 @@ class BusinessProfilePage extends StatelessWidget {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     mainAxisSize: MainAxisSize.min,
                                     children: [
-                                      if (previewLogoUrl != null) ...[
+                                      if (previewLogoUrl.isNotEmpty) ...[
                                         Container(
                                           width: 64,
                                           height: 64,
@@ -389,12 +429,18 @@ class BusinessProfilePage extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(24),
                                       border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
                                     ),
-                                    child: const Row(
+                                    child: Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        HugeIcon(icon: HugeIcons.strokeRoundedCall02, color: Colors.greenAccent, size: 20),
-                                        SizedBox(width: 12),
-                                        HugeIcon(icon: HugeIcons.strokeRoundedWhatsapp, color: Colors.greenAccent, size: 20),
+                                        GestureDetector(
+                                          onTap: () {},
+                                          child: const HugeIcon(icon: HugeIcons.strokeRoundedCall02, color: Colors.greenAccent, size: 20),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        GestureDetector(
+                                          onTap: () => _showAdminActionsMenu(context),
+                                          child: const HugeIcon(icon: HugeIcons.strokeRoundedSettings01, color: Colors.white70, size: 20),
+                                        ),
                                       ],
                                     ),
                                   ),
@@ -404,106 +450,123 @@ class BusinessProfilePage extends StatelessWidget {
                           ),
                         ),
 
-                        // Back Button - ALWAYS VISIBLE, fixed at top left
+                        // Dynamic Pill (Starts as Back button, expands to full header)
                         Positioned(
                           top: MediaQuery.of(context).padding.top + 8,
                           left: 16,
-                          child: GestureDetector(
-                            onTap: () => Navigator.pop(context),
-                            child: GlassContainer(
-                              useOwnLayer: true,
-                              quality: GlassQuality.standard,
-                              shape: const LiquidRoundedSuperellipse(borderRadius: 50.0),
-                              settings: const LiquidGlassSettings(
-                                thickness: 0.1,
-                                blur: 12.0,
-                                refractiveIndex: 1.0,
-                                glassColor: Colors.transparent,
-                              ),
-                              child: Container(
-                                height: 44,
-                                width: 44,
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                                ),
-                                alignment: Alignment.center,
-                                child: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.white, size: 20),
-                              ),
-                            ),
-                          ),
-                        ),
-
-                        // Collapsed Pill - Fades in, sits to the right of the back button
-                        Positioned(
-                          top: MediaQuery.of(context).padding.top + 8,
-                          left: 72, // 16 (padding) + 44 (back button width) + 12 (spacing)
                           right: 16,
-                          child: Opacity(
-                            opacity: ((collapsePercent - 0.5) * 2).clamp(0.0, 1.0),
-                            child: GlassContainer(
-                              useOwnLayer: true,
-                              quality: GlassQuality.standard,
-                              shape: const LiquidRoundedSuperellipse(borderRadius: 30.0),
-                              settings: const LiquidGlassSettings(
-                                thickness: 0.1,
-                                blur: 15.0,
-                                refractiveIndex: 1.0,
-                                glassColor: Colors.transparent,
-                              ),
-                              child: Container(
-                                height: 44,
-                                padding: const EdgeInsets.only(left: 5, right: 16),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withValues(alpha: 0.05),
-                                  borderRadius: BorderRadius.circular(30),
-                                  border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
-                                ),
-                                alignment: Alignment.center,
-                                child: Row(
-                                  children: [
-                                    if (previewLogoUrl != null) ...[
-                                      Container(
-                                        width: 34,
-                                        height: 34,
-                                        decoration: BoxDecoration(
-                                          shape: BoxShape.circle,
-                                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
-                                          image: DecorationImage(
-                                            image: NetworkImage(previewLogoUrl),
-                                            fit: BoxFit.cover,
-                                          ),
+                          child: LayoutBuilder(
+                            builder: (context, boxConstraints) {
+                              final minWidth = 44.0;
+                              final maxWidth = boxConstraints.maxWidth; // full width minus padding
+                              
+                              // Expand proportionally, but if stopped, the ScrollController snaps the scroll view!
+                              double targetExpand = ((collapsePercent - 0.1) * 1.5).clamp(0.0, 1.0);
+
+                              return TweenAnimationBuilder<double>(
+                                tween: Tween<double>(begin: 0.0, end: targetExpand),
+                                duration: const Duration(milliseconds: 300),
+                                curve: Curves.easeOutCubic,
+                                builder: (context, expandValue, child) {
+                                  final currentWidth = minWidth + (maxWidth - minWidth) * expandValue;
+
+                                  return Align(
+                                    alignment: Alignment.centerLeft,
+                                    child: GlassContainer(
+                                      useOwnLayer: true,
+                                      quality: GlassQuality.standard,
+                                      shape: LiquidRoundedSuperellipse(borderRadius: 50.0 - (20.0 * expandValue)),
+                                  settings: const LiquidGlassSettings(
+                                    thickness: 0.1,
+                                    blur: 15.0,
+                                    refractiveIndex: 1.0,
+                                    glassColor: Colors.transparent,
+                                  ),
+                                  child: Container(
+                                    height: 44,
+                                    width: currentWidth,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(30),
+                                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(30),
+                                      child: OverflowBox(
+                                        alignment: Alignment.centerLeft,
+                                        minWidth: maxWidth,
+                                        maxWidth: maxWidth,
+                                        child: Row(
+                                          children: [
+                                            // Back button (Always fixed size and clickable)
+                                            GestureDetector(
+                                              onTap: () => Navigator.pop(context),
+                                              child: Container(
+                                                width: 44,
+                                                height: 44,
+                                                color: Colors.transparent, // Ensures the tap area fills the bounds
+                                                alignment: Alignment.center,
+                                                child: const HugeIcon(icon: HugeIcons.strokeRoundedArrowLeft01, color: Colors.white, size: 20),
+                                              ),
+                                            ),
+                                            // Expandable content
+                                            Expanded(
+                                              child: Opacity(
+                                                opacity: Curves.easeIn.transform(expandValue),
+                                                child: Row(
+                                                  children: [
+                                                    if (previewLogoUrl.isNotEmpty) ...[
+                                                      Container(
+                                                        width: 28,
+                                                        height: 28,
+                                                        decoration: BoxDecoration(
+                                                          shape: BoxShape.circle,
+                                                          border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+                                                          image: DecorationImage(
+                                                            image: NetworkImage(previewLogoUrl),
+                                                            fit: BoxFit.cover,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      const SizedBox(width: 10),
+                                                    ],
+                                                    Expanded(
+                                                      child: Text(
+                                                        business.businessName,
+                                                        style: const TextStyle(
+                                                          color: Colors.white,
+                                                          fontSize: 15,
+                                                          fontWeight: FontWeight.w700,
+                                                        ),
+                                                        maxLines: 1,
+                                                        overflow: TextOverflow.ellipsis,
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    GestureDetector(
+                                                      onTap: () {},
+                                                      child: const HugeIcon(icon: HugeIcons.strokeRoundedCall02, color: Colors.greenAccent, size: 18),
+                                                    ),
+                                                    const SizedBox(width: 12),
+                                                    GestureDetector(
+                                                      onTap: () => _showAdminActionsMenu(context),
+                                                      child: const HugeIcon(icon: HugeIcons.strokeRoundedSettings01, color: Colors.white70, size: 18),
+                                                    ),
+                                                    const SizedBox(width: 16), // Right padding
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      const SizedBox(width: 10),
-                                    ],
-                                    Expanded(
-                                      child: Text(
-                                        business.businessName,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
                                     ),
-                                    const SizedBox(width: 8),
-                                    GestureDetector(
-                                      onTap: () {},
-                                      child: const HugeIcon(icon: HugeIcons.strokeRoundedCall02, color: Colors.greenAccent, size: 18),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    GestureDetector(
-                                      onTap: () {},
-                                      child: const HugeIcon(icon: HugeIcons.strokeRoundedWhatsapp, color: Colors.greenAccent, size: 18),
-                                    ),
-                                  ],
+                                  ),
                                 ),
-                              ),
-                            ),
+                              );
+                                },
+                              );
+                            },
                           ),
                         ),
                       ],
@@ -662,10 +725,6 @@ class BusinessProfilePage extends StatelessWidget {
                           _field('Email', business.email),
                           _divider(),
                           _field('Website', business.website),
-                          _divider(),
-                          _field('Logo URL', business.logoUrl),
-                          _divider(),
-                          _field('Cover URL', business.coverUrl),
                         ],
                       ),
                     ),
@@ -789,9 +848,86 @@ class BusinessProfilePage extends StatelessWidget {
               ),
             ],
           ),
+          ),
 
         ],
       ),
     );
+  }
+  void _showAdminActionsMenu(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) {
+        return GlassContainer(
+          useOwnLayer: true,
+          quality: GlassQuality.standard,
+          shape: const LiquidRoundedSuperellipse(borderRadius: 24.0),
+          settings: const LiquidGlassSettings(
+            thickness: 0.1,
+            blur: 15.0,
+            refractiveIndex: 1.0,
+            glassColor: Colors.transparent,
+          ),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0A0A14).withValues(alpha: 0.6),
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              border: Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.1))),
+            ),
+            child: SafeArea(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  const Text('Admin Actions', style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
+                  const SizedBox(height: 24),
+                  ListTile(
+                    leading: const HugeIcon(icon: HugeIcons.strokeRoundedCrown, color: Colors.blueAccent, size: 24),
+                    title: const Text('Upgrade to Pro', style: TextStyle(color: Colors.white)),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _performAction(() => ApiService().upgradeBusiness(widget.business.id, 'pro'));
+                    },
+                  ),
+                  ListTile(
+                    leading: const HugeIcon(icon: HugeIcons.strokeRoundedCrown, color: Colors.amber, size: 24),
+                    title: const Text('Upgrade to Enterprise', style: TextStyle(color: Colors.white)),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _performAction(() => ApiService().upgradeBusiness(widget.business.id, 'enterprise'));
+                    },
+                  ),
+                  const Divider(color: Colors.white12),
+                  ListTile(
+                    leading: const HugeIcon(icon: HugeIcons.strokeRoundedLock, color: Colors.redAccent, size: 24),
+                    title: const Text('Suspend Business', style: TextStyle(color: Colors.redAccent)),
+                    onTap: () async {
+                      Navigator.pop(context);
+                      await _performAction(() => ApiService().suspendBusiness(widget.business.id));
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _performAction(Future<void> Function() action) async {
+    try {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Executing Edge Function...')));
+      await action();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Action successful. Please refresh.')));
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+      }
+    }
   }
 }

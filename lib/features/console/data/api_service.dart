@@ -43,6 +43,50 @@ class ApiService {
     }
   }
 
+  /// Fetches platform revenue and tenant metrics for the dashboard.
+  Future<Map<String, dynamic>> fetchDashboardStats() async {
+    try {
+      // 1. Fetch businesses status counts
+      final businessesRes = await _client.from('admin_tenant_view').select('status');
+      final businesses = businessesRes as List;
+      
+      int totalBusinesses = businesses.length;
+      int activeCount = 0;
+      int suspendedCount = 0;
+      
+      for (final b in businesses) {
+        final status = b['status'] as String?;
+        if (status == 'active' || status == 'trial') {
+          activeCount++;
+        } else if (status == 'suspended') {
+          suspendedCount++;
+        }
+      }
+
+      // 2. Fetch revenue (amount_due for unpaid and paid invoices)
+      final invoicesRes = await _client.from('billing_invoices').select('amount_due, status');
+      final invoices = invoicesRes as List;
+
+      double platformRevenue = 0.0;
+      for (final inv in invoices) {
+        final status = inv['status'] as String?;
+        // We count expected revenue (unpaid) and collected revenue (paid)
+        if (status == 'unpaid' || status == 'paid') {
+          platformRevenue += (inv['amount_due'] as num?)?.toDouble() ?? 0.0;
+        }
+      }
+
+      return {
+        'totalBusinesses': totalBusinesses,
+        'activeCount': activeCount,
+        'suspendedCount': suspendedCount,
+        'platformRevenue': platformRevenue,
+      };
+    } on PostgrestException catch (e) {
+      throw ConsoleApiException('Failed to fetch dashboard stats: ${e.message}');
+    }
+  }
+
   /// Fetches real-time database stats using the RPC function `get_db_health_metrics`.
   Future<Map<String, dynamic>> fetchRealDbHealth() async {
     try {

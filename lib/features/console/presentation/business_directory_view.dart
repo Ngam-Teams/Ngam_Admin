@@ -122,11 +122,10 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                      child: TextField(
-                      controller: _searchController,
-                      style: const TextStyle(color: Colors.white),
-                      decoration: InputDecoration(
+                  TextField(
+                    controller: _searchController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
                         hintText: 'Search by business name or ID…',
                         hintStyle: TextStyle(
                           color: Colors.white.withValues(alpha: 0.35),
@@ -163,7 +162,6 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                         ),
                       ),
                     ),
-                  ),
                   const SizedBox(height: 16),
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,

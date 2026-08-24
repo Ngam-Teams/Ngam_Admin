@@ -118,14 +118,10 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                 borderRadius: BorderRadius.circular(16),
                 border: Border.all(color: Colors.white.withValues(alpha: 0.08)),
               ),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Container(
-                      width: 280, // More compact search bar
-                      margin: const EdgeInsets.only(right: 12),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
                       child: TextField(
                       controller: _searchController,
                       style: const TextStyle(color: Colors.white),
@@ -167,7 +163,12 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  const SizedBox(height: 16),
+                  SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
                   _StatusChip(
                     label: 'All',
                     selected: _statusFilter == 'all',
@@ -199,10 +200,12 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                     tooltip: 'Refresh',
                     onPressed: _loadBusinesses,
                   ),
+                      ],
+                    ), // closes Row
+                  ), // closes SingleChildScrollView
                 ],
-              ), // closes Row
-            ), // closes SingleChildScrollView
-          ), // closes Container
+              ), // closes Column
+            ), // closes Container
           ),
         ),
         const SizedBox(height: 24),

@@ -3,8 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
-
 import 'widgets/stat_card.dart';
+import '../../../widgets/glass_toast.dart';
 
 class BillingView extends StatelessWidget {
   const BillingView({super.key});
@@ -353,11 +353,11 @@ class BillingView extends StatelessWidget {
       }
       
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Fake invoices generated for multiple stores!')));
+        showGlassToast(context, 'Fake invoices generated for multiple stores!');
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error generating invoice: $e')));
+        showGlassToast(context, 'Error generating invoice: $e', isError: true, customColor: Colors.orange);
       }
     }
   }
@@ -365,7 +365,7 @@ class BillingView extends StatelessWidget {
   Future<void> _handlePayInvoice(BuildContext context, Map<String, dynamic> invoice) async {
     try {
       // Show loading snackbar
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Generating payment link...')));
+      showGlassToast(context, 'Generating payment link...');
 
       // First fetch the business email/name
       final businessRes = await Supabase.instance.client
@@ -392,7 +392,7 @@ class BillingView extends StatelessWidget {
       }
     } catch (e) {
       if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        showGlassToast(context, 'Error: $e', isError: true, customColor: Colors.orange);
       }
     }
   }

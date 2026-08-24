@@ -16,6 +16,7 @@ import '../models/business_summary_model.dart';
 import 'widgets/business_action_menu.dart';
 import 'widgets/modal_sheet.dart';
 import 'package:go_router/go_router.dart';
+import '../../../widgets/glass_toast.dart';
 
 class BusinessDirectoryView extends StatefulWidget {
   const BusinessDirectoryView({super.key});
@@ -768,12 +769,7 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                 child: GestureDetector(
                   onTap: () {
                     Clipboard.setData(ClipboardData(text: business.id));
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Business ID copied!'),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
+                    showGlassToast(context, 'Business ID copied!');
                   },
                   child: _innerGlassCard(
                     isDark: isDark,
@@ -1029,12 +1025,7 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                 _infoRow('Business ID', business.id,
                     isMonospace: true, onCopy: () {
                   Clipboard.setData(ClipboardData(text: business.id));
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Business ID copied!'),
-                      behavior: SnackBarBehavior.floating,
-                    ),
-                  );
+                  showGlassToast(context, 'Business ID copied!');
                 }),
                 Divider(
                     color: Colors.white.withValues(alpha: 0.07),

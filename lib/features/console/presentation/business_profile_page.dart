@@ -11,6 +11,7 @@ import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
 
 import '../data/api_service.dart';
 import '../models/business_summary_model.dart';
+import '../../../widgets/glass_toast.dart';
 
 class BusinessProfilePage extends StatefulWidget {
   final BusinessSummaryModel business;
@@ -162,13 +163,7 @@ class _BusinessProfilePageState extends State<BusinessProfilePage> {
                   GestureDetector(
                     onTap: () {
                       Clipboard.setData(ClipboardData(text: value));
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text('$label copied!'),
-                          behavior: SnackBarBehavior.floating,
-                          duration: const Duration(seconds: 2),
-                        ),
-                      );
+                      showGlassToast(context, '$label copied!', duration: const Duration(seconds: 2));
                     },
                     child: const HugeIcon(
                       icon: HugeIcons.strokeRoundedCopy01,
@@ -919,14 +914,14 @@ class _BusinessProfilePageState extends State<BusinessProfilePage> {
 
   Future<void> _performAction(Future<void> Function() action) async {
     try {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Executing Edge Function...')));
+      showGlassToast(context, 'Executing Edge Function...');
       await action();
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Action successful. Please refresh.')));
+        showGlassToast(context, 'Action successful. Please refresh.');
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e')));
+        showGlassToast(context, 'Error: $e', isError: true, customColor: Colors.orange);
       }
     }
   }

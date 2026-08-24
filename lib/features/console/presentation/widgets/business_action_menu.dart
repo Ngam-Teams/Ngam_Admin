@@ -9,6 +9,7 @@ import 'package:hugeicons/hugeicons.dart';
 
 import '../../data/api_service.dart';
 import '../../models/business_summary_model.dart';
+import '../../../../widgets/glass_toast.dart';
 
 class BusinessActionMenu extends StatelessWidget {
   final BusinessSummaryModel business;
@@ -85,39 +86,35 @@ class BusinessActionMenu extends StatelessWidget {
   }
 
   Future<void> _handleAction(BuildContext context, _BusinessAction action) async {
-    final messenger = ScaffoldMessenger.of(context);
-
     try {
       switch (action) {
         case _BusinessAction.suspend:
           await apiService.suspendBusiness(business.id);
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('${business.businessName} suspended.'),
-              backgroundColor: Colors.redAccent,
-            ),
+          if (!context.mounted) return;
+          showGlassToast(
+            context,
+            '${business.businessName} suspended.',
+            customColor: Colors.redAccent,
           );
 
         case _BusinessAction.reactivate:
           await apiService.upgradeBusiness(business.id, business.subscriptionTier);
-          messenger.showSnackBar(
-            SnackBar(
-              content: Text('${business.businessName} reactivated.'),
-              backgroundColor: Colors.greenAccent,
-            ),
+          if (!context.mounted) return;
+          showGlassToast(
+            context,
+            '${business.businessName} reactivated.',
+            customColor: Colors.greenAccent,
           );
 
         case _BusinessAction.upgradePro:
           await apiService.upgradeBusiness(business.id, 'pro');
-          messenger.showSnackBar(
-            SnackBar(content: Text('${business.businessName} upgraded to Pro.')),
-          );
+          if (!context.mounted) return;
+          showGlassToast(context, '${business.businessName} upgraded to Pro.');
 
         case _BusinessAction.upgradeEnterprise:
           await apiService.upgradeBusiness(business.id, 'enterprise');
-          messenger.showSnackBar(
-            SnackBar(content: Text('${business.businessName} upgraded to Enterprise.')),
-          );
+          if (!context.mounted) return;
+          showGlassToast(context, '${business.businessName} upgraded to Enterprise.');
 
         case _BusinessAction.impersonate:
           final session = await apiService.getBusinessSession(business.id);
@@ -128,11 +125,12 @@ class BusinessActionMenu extends StatelessWidget {
 
       onActionComplete();
     } on ConsoleApiException catch (e) {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text('Error: ${e.message}'),
-          backgroundColor: Colors.orange,
-        ),
+      if (!context.mounted) return;
+      showGlassToast(
+        context,
+        'Error: ${e.message}',
+        isError: true,
+        customColor: Colors.orange,
       );
     }
   }

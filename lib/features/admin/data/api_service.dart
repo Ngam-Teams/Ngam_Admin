@@ -38,7 +38,7 @@ class ApiService {
             .map((json) => BusinessSummaryModel.fromJson(json as Map<String, dynamic>))
             .toList();
       } on PostgrestException catch (e) {
-        throw ConsoleApiException('Failed to fetch businesses: ${e.message}');
+        throw AdminApiException('Failed to fetch businesses: ${e.message}');
       }
     }
   }
@@ -83,7 +83,7 @@ class ApiService {
         'platformRevenue': platformRevenue,
       };
     } on PostgrestException catch (e) {
-      throw ConsoleApiException('Failed to fetch dashboard stats: ${e.message}');
+      throw AdminApiException('Failed to fetch dashboard stats: ${e.message}');
     }
   }
 
@@ -93,7 +93,7 @@ class ApiService {
       final response = await _client.rpc('get_db_health_metrics');
       return Map<String, dynamic>.from(response as Map);
     } on PostgrestException catch (e) {
-      throw ConsoleApiException('Failed to fetch DB metrics: ${e.message}');
+      throw AdminApiException('Failed to fetch DB metrics: ${e.message}');
     }
   }
 
@@ -114,7 +114,7 @@ class ApiService {
       );
 
       if (response.statusCode != 200) {
-        throw ConsoleApiException('Failed to fetch hardware metrics: ${response.statusCode}');
+        throw AdminApiException('Failed to fetch hardware metrics: ${response.statusCode}');
       }
 
       final body = response.body;
@@ -166,7 +166,7 @@ class ApiService {
         'disk': diskUsage,
       };
     } catch (e) {
-      throw ConsoleApiException('Hardware metrics error: $e');
+      throw AdminApiException('Hardware metrics error: $e');
     }
   }
 
@@ -217,20 +217,20 @@ class ApiService {
         final error = (response.data as Map?)?.containsKey('error') == true
             ? response.data['error']
             : 'HTTP ${response.status}';
-        throw ConsoleApiException(error.toString());
+        throw AdminApiException(error.toString());
       }
 
       return response.data as Map<String, dynamic>;
     } on FunctionException catch (e) {
-      throw ConsoleApiException('Edge Function error: ${e.reasonPhrase}');
+      throw AdminApiException('Edge Function error: ${e.reasonPhrase}');
     }
   }
 }
 
-class ConsoleApiException implements Exception {
+class AdminApiException implements Exception {
   final String message;
-  const ConsoleApiException(this.message);
+  const AdminApiException(this.message);
 
   @override
-  String toString() => 'ConsoleApiException: $message';
+  String toString() => 'AdminApiException: $message';
 }

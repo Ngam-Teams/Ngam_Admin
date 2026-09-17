@@ -1,7 +1,7 @@
 // =============================================================================
 // RoleVerificationService
 // Validates that the currently authenticated user holds the `super_admin` role.
-// Called once on app launch before rendering the Console.
+// Called once on app launch before rendering the Admin.
 // =============================================================================
 
 import 'package:supabase_flutter/supabase_flutter.dart';

@@ -1,3 +1,3 @@
-# ngam_console
+# ngam_admin
 
 A new Flutter project.

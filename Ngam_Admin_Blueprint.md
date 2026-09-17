@@ -1,15 +1,15 @@
-# Ngam Console: Super Admin Blueprint
+# Ngam Admin: Super Admin Blueprint
 **Platform Owner Master Dashboard & Technical Implementation Guide**
 
 ---
 
 ## 1. Executive Summary
-**Ngam Console** is the internal Super Admin portal for the multi-tenant SaaS ecosystem. It provides the platform owner with global oversight to manage tenants (business owners), handle subscription tiers, and monitor overall database health. To ensure absolute data isolation and security, this portal strictly separates client-side reads from high-privilege write operations through Supabase Edge Functions and Row-Level Security (RLS) bypasses.
+**Ngam Admin** is the internal Super Admin portal for the multi-tenant SaaS ecosystem. It provides the platform owner with global oversight to manage tenants (business owners), handle subscription tiers, and monitor overall database health. To ensure absolute data isolation and security, this portal strictly separates client-side reads from high-privilege write operations through Supabase Edge Functions and Row-Level Security (RLS) bypasses.
 
 ---
 
 ## 2. Database Architecture (Supabase)
-Standard multi-tenant architecture relies on a `tenant_id` column to isolate data. The Ngam Console bypasses this isolation safely via a dedicated roles table and secure views.
+Standard multi-tenant architecture relies on a `tenant_id` column to isolate data. The Ngam Admin bypasses this isolation safely via a dedicated roles table and secure views.
 
 ### 2.1 Role Management Schema
 Create a new migration file in `supabase/migrations/` (e.g., `20260817_super_admin_roles.sql`) to establish the authorization hierarchy.
@@ -32,7 +32,7 @@ ON public.user_roles FOR SELECT TO authenticated
 USING (auth.uid() = user_id);
 
 -- 4. Create a secure view for Super Admins to see all tenants
--- (This aggregates the public.tenants table for the Ngam Console dashboard)
+-- (This aggregates the public.tenants table for the Ngam Admin dashboard)
 CREATE OR REPLACE VIEW public.admin_tenant_view AS
 SELECT t.* FROM public.tenants t
 JOIN public.user_roles ur ON ur.user_id = auth.uid()
@@ -96,14 +96,14 @@ serve(async (req) => {
 ## 4. Flutter File Architecture
 Construct the frontend architecture within the Ngam repository using feature-first directory routing. Ensure package alignment, specifically leveraging `liquid_glass_widgets: ^0.5.0` for the UI.
 
-*   `lib/features/console/`
+*   `lib/features/admin/`
     *   `data/`
-        *   `console_api_service.dart` *(Handles Supabase Edge Function invocations)*
+        *   `admin_api_service.dart` *(Handles Supabase Edge Function invocations)*
         *   `role_verification_service.dart` *(Validates `super_admin` status on app launch)*
     *   `models/`
         *   `tenant_summary_model.dart` *(Data class mapping the `admin_tenant_view`)*
     *   `presentation/`
-        *   `console_dashboard.dart` *(Master layout)*
+        *   `admin_dashboard.dart` *(Master layout)*
         *   `tenant_directory_view.dart` *(Data table of all businesses)*
         *   `widgets/`
             *   `admin_stat_card.dart` *(Frosted-glass UI component for MRR metrics)*
@@ -114,7 +114,7 @@ Construct the frontend architecture within the Ngam repository using feature-fir
 ## 5. Security Guardrails & State Management
 
 ### 5.1 Route Protection (GoRouter Integration)
-Prevent unauthorized users from rendering the Ngam Console by implementing a strict redirect guard in the router configuration.
+Prevent unauthorized users from rendering the Ngam Admin by implementing a strict redirect guard in the router configuration.
 
 ```dart
 // lib/core/router/app_router.dart
@@ -125,9 +125,9 @@ final appRouter = GoRouter(
   initialLocation: '/',
   redirect: (context, state) async {
     final user = Supabase.instance.client.auth.currentUser;
-    final isGoingToConsole = state.uri.path.startsWith('/console');
+    final isGoingToAdmin = state.uri.path.startsWith('/admin');
 
-    if (isGoingToConsole) {
+    if (isGoingToAdmin) {
       if (user == null) return '/login';
       
       // Query the user_roles table to verify access

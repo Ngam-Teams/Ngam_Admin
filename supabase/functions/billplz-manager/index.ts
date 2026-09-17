@@ -62,12 +62,12 @@ serve(async (req) => {
           },
           body: JSON.stringify({
             collection_id: BILLPLZ_COLLECTION_ID,
-            description: `Ngam Console Platform Fee - Invoice ${invoice_id}`,
+            description: `Ngam Admin Platform Fee - Invoice ${invoice_id}`,
             email: business_email,
             name: business_name,
             amount: Math.round(amount_due * 100), // Billplz expects amount in cents (RM 1 = 100)
             callback_url: `${Deno.env.get('SUPABASE_URL')}/functions/v1/billplz-manager/webhook`,
-            redirect_url: 'https://ngam-console.app/billing/success' // Where they go after paying
+            redirect_url: 'https://ngam-admin.app/billing/success' // Where they go after paying
           })
         })
 

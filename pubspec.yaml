@@ -1,5 +1,5 @@
-name: ngam_console
-description: "Ngam Console – Super Admin portal for the multi-tenant SaaS ecosystem."
+name: ngam_admin
+description: "Ngam Admin – Super Admin portal for the multi-tenant SaaS ecosystem."
 publish_to: 'none'
 version: 0.1.0
 

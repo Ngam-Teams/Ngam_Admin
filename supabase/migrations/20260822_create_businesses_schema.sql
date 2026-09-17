@@ -1,4 +1,4 @@
-﻿-- =============================================================================
+-- =============================================================================
 -- Migration: 20260822_create_businesses_schema.sql
 -- Ngam Business Registration Schema
 -- Creates: businesses, business_compliance, business_settings
@@ -72,7 +72,7 @@ CREATE POLICY "owners can insert own settings" ON public.business_settings FOR I
 CREATE POLICY "owners can delete own settings" ON public.business_settings FOR DELETE USING (EXISTS (SELECT 1 FROM public.businesses WHERE id = business_settings.business_id AND owner_id = auth.uid()));
 
 -- ---------------------------------------------------------------------------
--- Convenience View: admin_business_view (for Ngam Console super admin)
+-- Convenience View: admin_business_view (for Ngam Admin super admin)
 -- ---------------------------------------------------------------------------
 CREATE OR REPLACE VIEW public.admin_business_view AS
 SELECT

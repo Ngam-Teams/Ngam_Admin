@@ -69,7 +69,7 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
         _applyFilters();
         _loading = false;
       });
-    } on ConsoleApiException catch (e) {
+    } on AdminApiException catch (e) {
       if (!mounted) return;
       if (!silent) {
         setState(() {
@@ -570,7 +570,7 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
   // ---------------------------------------------------------------------------
 
   void _showBusinessDetails(BusinessSummaryModel business) {
-    const bool isDark = true; // console is always dark
+    const bool isDark = true; // admin is always dark
 
     // Hardcoded fallback values for fields not yet in the data model
     const double rating = 4.7;
@@ -732,7 +732,7 @@ class _BusinessDirectoryViewState extends State<BusinessDirectoryView> {
                 child: GestureDetector(
                   onTap: () {
                     Navigator.pop(ctx);
-                    context.push('/console/business', extra: business);
+                    context.push('/admin/business', extra: business);
                   },
                   child: _innerGlassCard(
                     isDark: isDark,

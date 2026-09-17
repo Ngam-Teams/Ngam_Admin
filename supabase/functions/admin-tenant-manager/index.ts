@@ -1,7 +1,7 @@
 // =============================================================================
 // Edge Function: admin-tenant-manager
 // Purpose:  Handles all high-privilege tenant operations on behalf of the
-//           Ngam Console Super Admin portal.
+//           Ngam Admin Super Admin portal.
 //           The service_role key never leaves this serverless environment.
 // Deploy:   supabase functions deploy admin-tenant-manager
 // =============================================================================

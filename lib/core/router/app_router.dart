@@ -1,7 +1,7 @@
 // =============================================================================
 // AppRouter
 // GoRouter configuration with super_admin guard (§5.1).
-// Protects all /console routes – redirects to /login or /unauthorized.
+// Protects all /admin routes – redirects to /login or /unauthorized.
 // =============================================================================
 
 import 'package:flutter/material.dart';
@@ -9,9 +9,9 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
-import '../../features/console/presentation/dashboard.dart';
-import '../../features/console/presentation/business_profile_page.dart';
-import '../../features/console/models/business_summary_model.dart';
+import '../../features/admin/presentation/dashboard.dart';
+import '../../features/admin/presentation/business_profile_page.dart';
+import '../../features/admin/models/business_summary_model.dart';
 
 // ---------------------------------------------------------------------------
 // Placeholder screens (replace with real auth/error screens as needed)
@@ -40,7 +40,7 @@ class _LoginScreenState extends State<_LoginScreen> {
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
-      if (mounted) context.go('/console');
+      if (mounted) context.go('/admin');
     } catch (e) {
       if (mounted) {
         setState(() {
@@ -71,7 +71,7 @@ class _LoginScreenState extends State<_LoginScreen> {
             children: [
               const HugeIcon(icon: HugeIcons.strokeRoundedShield01, color: Color(0xFF6C63FF), size: 48, strokeWidth: 2.1),
               const SizedBox(height: 24),
-              const Text('Ngam Console Login', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text('Ngam Admin Login', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 32),
               if (_error != null) ...[
                 Text(_error!, style: const TextStyle(color: Colors.redAccent)),
@@ -159,12 +159,12 @@ class _UnauthorizedScreen extends StatelessWidget {
 // ---------------------------------------------------------------------------
 
 final appRouter = GoRouter(
-  initialLocation: '/console',
+  initialLocation: '/admin',
   redirect: (context, state) async {
     final user = Supabase.instance.client.auth.currentUser;
-    final isGoingToConsole = state.uri.path.startsWith('/console');
+    final isGoingToAdmin = state.uri.path.startsWith('/admin');
 
-    if (isGoingToConsole) {
+    if (isGoingToAdmin) {
       // Unauthenticated – redirect to login
       if (user == null) return '/login';
 
@@ -188,11 +188,11 @@ final appRouter = GoRouter(
   },
   routes: [
     GoRoute(
-      path: '/console',
+      path: '/admin',
       builder: (context, state) => const Dashboard(),
     ),
     GoRoute(
-      path: '/console/business',
+      path: '/admin/business',
       builder: (context, state) {
         final business = state.extra as BusinessSummaryModel;
         return BusinessProfilePage(business: business);

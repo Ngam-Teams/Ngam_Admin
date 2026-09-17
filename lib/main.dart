@@ -1,6 +1,6 @@
 // =============================================================================
 // main.dart
-// Entry point for Ngam Console – Super Admin Portal.
+// Entry point for Ngam Admin – Super Admin Portal.
 // Bootstraps Supabase, wires GoRouter, and applies the dark theme.
 //
 // ⚠️  Replace placeholder values with your actual Supabase project credentials:
@@ -24,16 +24,16 @@ Future<void> main() async {
     publishableKey: dotenv.env['SUPABASE_ANON_KEY']!,
   );
 
-  runApp(const NgamConsoleApp());
+  runApp(const NgamAdminApp());
 }
 
-class NgamConsoleApp extends StatelessWidget {
-  const NgamConsoleApp({super.key});
+class NgamAdminApp extends StatelessWidget {
+  const NgamAdminApp({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp.router(
-      title: 'Ngam Console',
+      title: 'Ngam Admin',
       debugShowCheckedModeBanner: false,
       routerConfig: appRouter,
       theme: ThemeData(

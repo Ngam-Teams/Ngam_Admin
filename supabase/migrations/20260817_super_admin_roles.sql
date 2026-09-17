@@ -1,7 +1,7 @@
 -- =============================================================================
 -- Migration: Super Admin Role Management Schema
 -- Created:   2026-08-17
--- Purpose:   Establishes the authorization hierarchy for Ngam Console.
+-- Purpose:   Establishes the authorization hierarchy for Ngam Admin.
 --            Provides a global user_roles table and a secure view that exposes
 --            the full tenants table only to super_admin accounts.
 -- =============================================================================

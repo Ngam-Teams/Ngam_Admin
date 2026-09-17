@@ -1,6 +1,6 @@
 // =============================================================================
 // Dashboard
-// Master layout for the Ngam Console Super Admin portal.
+// Master layout for the Ngam Admin Super Admin portal.
 // Dark glassmorphism aesthetic with NavigationRail + content area (§5.2).
 // =============================================================================
 
@@ -122,7 +122,7 @@ class _DashboardState extends State<Dashboard> {
                           ),
                         ),
                         Text(
-                          'Console',
+                          'Admin',
                           style: TextStyle(
                             color: Color(0xFF6C63FF),
                             fontSize: 11,
@@ -231,7 +231,7 @@ class _DashboardState extends State<Dashboard> {
         1 => 'Business Directory',
         2 => 'Billing',
         3 => 'DB Health',
-        _ => 'Console',
+        _ => 'Admin',
       };
 
   Widget _buildPageBody(bool isDesktop) {

@@ -1,6 +1,6 @@
 {
-    "name": "ngam_console",
-    "short_name": "ngam_console",
+    "name": "ngam_admin",
+    "short_name": "ngam_admin",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

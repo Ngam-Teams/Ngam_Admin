@@ -1,4 +1,4 @@
-package com.example.ngam_console
+package com.example.ngam_admin
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -124,7 +124,7 @@ class BusinessActionMenu extends StatelessWidget {
       }
 
       onActionComplete();
-    } on ConsoleApiException catch (e) {
+    } on AdminApiException catch (e) {
       if (!context.mounted) return;
       showGlassToast(
         context,

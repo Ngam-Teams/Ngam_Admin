@@ -12,110 +12,10 @@ import 'package:hugeicons/hugeicons.dart';
 import '../../features/admin/presentation/dashboard.dart';
 import '../../features/admin/presentation/business_profile_page.dart';
 import '../../features/admin/models/business_summary_model.dart';
+import '../../features/auth/presentation/login_screen.dart';
 
 // ---------------------------------------------------------------------------
-// Placeholder screens (replace with real auth/error screens as needed)
 // ---------------------------------------------------------------------------
-
-class _LoginScreen extends StatefulWidget {
-  const _LoginScreen();
-
-  @override
-  State<_LoginScreen> createState() => _LoginScreenState();
-}
-
-class _LoginScreenState extends State<_LoginScreen> {
-  final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
-  bool _loading = false;
-  String? _error;
-
-  Future<void> _login() async {
-    setState(() {
-      _loading = true;
-      _error = null;
-    });
-    try {
-      await Supabase.instance.client.auth.signInWithPassword(
-        email: _emailController.text.trim(),
-        password: _passwordController.text,
-      );
-      if (mounted) context.go('/admin');
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _error = e.toString();
-          _loading = false;
-        });
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _emailController.dispose();
-    _passwordController.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0A0A14),
-      body: Center(
-        child: Container(
-          constraints: const BoxConstraints(maxWidth: 400),
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const HugeIcon(icon: HugeIcons.strokeRoundedShield01, color: Color(0xFF6C63FF), size: 48, strokeWidth: 2.1),
-              const SizedBox(height: 24),
-              const Text('Ngam Admin Login', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 32),
-              if (_error != null) ...[
-                Text(_error!, style: const TextStyle(color: Colors.redAccent)),
-                const SizedBox(height: 16),
-              ],
-              TextField(
-                controller: _emailController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Email',
-                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-                  enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF6C63FF))),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                obscureText: true,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  labelStyle: TextStyle(color: Colors.white.withValues(alpha: 0.5)),
-                  enabledBorder: const OutlineInputBorder(borderSide: BorderSide(color: Colors.white24)),
-                  focusedBorder: const OutlineInputBorder(borderSide: BorderSide(color: Color(0xFF6C63FF))),
-                ),
-              ),
-              const SizedBox(height: 32),
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: ElevatedButton(
-                  onPressed: _loading ? null : _login,
-                  child: _loading ? const CircularProgressIndicator(color: Colors.white) : const Text('Sign In'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
 class _UnauthorizedScreen extends StatelessWidget {
   const _UnauthorizedScreen();
 
@@ -200,7 +100,7 @@ final appRouter = GoRouter(
     ),
     GoRoute(
       path: '/login',
-      builder: (context, state) => const _LoginScreen(),
+      builder: (context, state) => const LoginScreen(),
     ),
     GoRoute(
       path: '/unauthorized',

@@ -14,6 +14,7 @@ import '../data/api_service.dart';
 import 'business_directory_view.dart';
 import 'billing_view.dart';
 import 'db_health_view.dart';
+import 'settings_view.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/bottom_nav.dart';
 
@@ -32,6 +33,7 @@ class _DashboardState extends State<Dashboard> {
     (icon: HugeIcons.strokeRoundedNote01, label: 'Businesses'),
     (icon: HugeIcons.strokeRoundedInvoice01, label: 'Billing'),
     (icon: HugeIcons.strokeRoundedDatabase01, label: 'DB Health'),
+    (icon: HugeIcons.strokeRoundedSettings01, label: 'Settings'),
   ];
 
   @override
@@ -154,17 +156,7 @@ class _DashboardState extends State<Dashboard> {
 
               const Spacer(),
 
-              // Divider + Sign out
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Divider(color: Colors.white.withValues(alpha: 0.08)),
-              ),
-              _NavItem(
-                icon: HugeIcons.strokeRoundedLogout02,
-                label: 'Sign Out',
-                selected: false,
-                onTap: () {/* GoRouter will handle auth sign-out */},
-              ),
+              // Bottom spacer for rail
               const SizedBox(height: 24),
             ],
           ),
@@ -231,17 +223,19 @@ class _DashboardState extends State<Dashboard> {
         1 => 'Business Directory',
         2 => 'Billing',
         3 => 'DB Health',
+        4 => 'Settings',
         _ => 'Admin',
       };
 
   Widget _buildPageBody(bool isDesktop) {
     return IndexedStack(
-      index: _selectedIndex.clamp(0, 3),
+      index: _selectedIndex.clamp(0, 4),
       children: [
         _buildOverviewPage(isDesktop),
         const BusinessDirectoryView(),
         const BillingView(),
         const DbHealthView(),
+        const SettingsView(),
       ],
     );
   }

@@ -15,6 +15,12 @@ import 'business_directory_view.dart';
 import 'billing_view.dart';
 import 'db_health_view.dart';
 import 'settings_view.dart';
+import 'kyc_verification_view.dart';
+import 'payout_clearinghouse_view.dart';
+import 'impersonation_view.dart';
+import 'system_control_view.dart';
+import 'platform_revenue_view.dart';
+import 'subscription_manager_view.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/bottom_nav.dart';
 
@@ -27,6 +33,7 @@ class Dashboard extends StatefulWidget {
 
 class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
+  String? _activeSubView;
 
   static const _navItems = [
     (icon: HugeIcons.strokeRoundedHome11, label: 'Overview'),
@@ -64,7 +71,10 @@ class _DashboardState extends State<Dashboard> {
   Widget _buildBottomNav() {
     return BottomNav(
       currentIndex: _selectedIndex,
-      onTap: (index) => setState(() => _selectedIndex = index),
+      onTap: (index) => setState(() {
+        _selectedIndex = index;
+        _activeSubView = null;
+      }),
       items: _navItems.map((item) {
         return NavItem(
           icon: item.icon,
@@ -144,13 +154,16 @@ class _DashboardState extends State<Dashboard> {
               ..._navItems.asMap().entries.map((entry) {
                 final index = entry.key;
                 final item = entry.value;
-                final selected = index == _selectedIndex;
+                final selected = index == _selectedIndex && _activeSubView == null;
 
                 return _NavItem(
                   icon: item.icon,
                   label: item.label,
                   selected: selected,
-                  onTap: () => setState(() => _selectedIndex = index),
+                  onTap: () => setState(() {
+                    _selectedIndex = index;
+                    _activeSubView = null;
+                  }),
                 );
               }),
 
@@ -218,16 +231,40 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
-  String get _pageTitle => switch (_selectedIndex) {
-        0 => 'Overview',
-        1 => 'Business Directory',
-        2 => 'Billing',
-        3 => 'DB Health',
-        4 => 'Settings',
-        _ => 'Admin',
+  String get _pageTitle {
+    if (_activeSubView != null) {
+      return switch (_activeSubView) {
+        'kyc' => 'SSM & KYC Verification',
+        'payouts' => 'DuitNow Payouts',
+        'impersonation' => 'Merchant Impersonation',
+        'killswitch' => 'Platform Controls',
+        'revenue' => 'Revenue & Take-Rate',
+        'subscriptions' => 'Plans & Overrides',
+        _ => 'Super Admin',
       };
+    }
+    return switch (_selectedIndex) {
+      0 => 'Overview',
+      1 => 'Business Directory',
+      2 => 'Billing',
+      3 => 'DB Health',
+      4 => 'Settings',
+      _ => 'Admin',
+    };
+  }
 
   Widget _buildPageBody(bool isDesktop) {
+    if (_activeSubView != null) {
+      return switch (_activeSubView) {
+        'kyc' => KycVerificationView(onBack: () => setState(() => _activeSubView = null)),
+        'payouts' => PayoutClearinghouseView(onBack: () => setState(() => _activeSubView = null)),
+        'impersonation' => ImpersonationView(onBack: () => setState(() => _activeSubView = null)),
+        'killswitch' => SystemControlView(onBack: () => setState(() => _activeSubView = null)),
+        'revenue' => PlatformRevenueView(onBack: () => setState(() => _activeSubView = null)),
+        'subscriptions' => SubscriptionManagerView(onBack: () => setState(() => _activeSubView = null)),
+        _ => _buildOverviewPage(isDesktop),
+      };
+    }
     return IndexedStack(
       index: _selectedIndex.clamp(0, 4),
       children: [
@@ -303,9 +340,13 @@ class _DashboardState extends State<Dashboard> {
             children: [
               // 1. Responsive Stat Cards
               _buildResponsiveStatCards(cards, crossAxisCount),
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
-              // 2. Responsive Dashboard Widgets
+              // 2. Pusat Kawalan Pantas Super Admin (Quick Command Center)
+              _buildSuperAdminCommandCenter(isDesktop),
+              const SizedBox(height: 24),
+
+              // 3. Responsive Dashboard Widgets
               if (width >= 1000)
                 Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -484,23 +525,186 @@ class _DashboardState extends State<Dashboard> {
     );
   }
 
+  Widget _buildSuperAdminCommandCenter(bool isDesktop) {
+    final commands = [
+      (
+        title: 'SSM & KYC Hub',
+        subtitle: 'Verifikasi pendaftaran SSM & akaun peniaga',
+        icon: HugeIcons.strokeRoundedLegal01,
+        color: const Color(0xFF6C63FF),
+        badge: '3 Menunggu',
+        badgeColor: const Color(0xFFF59E0B),
+        subView: 'kyc',
+      ),
+      (
+        title: 'DuitNow Clearing',
+        subtitle: 'Pelepasan dana escrow harian ke akaun bank',
+        icon: HugeIcons.strokeRoundedBank,
+        color: const Color(0xFF10B981),
+        badge: 'RM 42.8k',
+        badgeColor: const Color(0xFF10B981),
+        subView: 'payouts',
+      ),
+      (
+        title: 'Ghost Impersonate',
+        subtitle: 'Masuk pandangan kedai untuk bantuan teknikal',
+        icon: HugeIcons.strokeRoundedUserAccount,
+        color: const Color(0xFFF59E0B),
+        badge: '1-Klik Akses',
+        badgeColor: const Color(0xFF6C63FF),
+        subView: 'impersonation',
+      ),
+      (
+        title: 'Platform Kill-Switch',
+        subtitle: 'Suis kecemasan & mod penyelenggaraan',
+        icon: HugeIcons.strokeRoundedShield01,
+        color: const Color(0xFFEF4444),
+        badge: 'Normal 99.9%',
+        badgeColor: const Color(0xFF10B981),
+        subView: 'killswitch',
+      ),
+      (
+        title: 'Hasil & Take-Rate',
+        subtitle: 'Analisis komisen MDR 1.5% & SaaS MRR',
+        icon: HugeIcons.strokeRoundedChartIncrease,
+        color: const Color(0xFF4ECDC4),
+        badge: 'RM 40.8k Net',
+        badgeColor: const Color(0xFF4ECDC4),
+        subView: 'revenue',
+      ),
+      (
+        title: 'Plan & Overrides',
+        subtitle: 'Lanjut trial percuma, ubah tier & gantung',
+        icon: HugeIcons.strokeRoundedCrown02,
+        color: const Color(0xFF8B5CF6),
+        badge: '5 Merchant',
+        badgeColor: const Color(0xFF8B5CF6),
+        subView: 'subscriptions',
+      ),
+    ];
+
+    return _buildPanel(
+      title: 'Pusat Kawalan Pantas Super Admin',
+      icon: HugeIcons.strokeRoundedCommand,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth >= 700;
+          return Wrap(
+            spacing: 12,
+            runSpacing: 12,
+            children: commands.map((cmd) {
+              final cardWidth = isWide ? (constraints.maxWidth - 24) / 3 - 1 : (constraints.maxWidth - 12) / 2 - 1;
+              return InkWell(
+                onTap: () => setState(() => _activeSubView = cmd.subView),
+                borderRadius: BorderRadius.circular(16),
+                child: Container(
+                  width: cardWidth,
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: cmd.color.withValues(alpha: 0.25)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: cmd.color.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: HugeIcon(icon: cmd.icon, color: cmd.color, size: 20),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: cmd.badgeColor.withValues(alpha: 0.2),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text(
+                              cmd.badge,
+                              style: TextStyle(color: cmd.badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Text(
+                        cmd.title,
+                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        cmd.subtitle,
+                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            }).toList(),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildQuickActions() {
     return _buildPanel(
-      title: 'Quick Actions',
+      title: 'Tindakan Terus Super Admin',
       icon: HugeIcons.strokeRoundedZap,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           _QuickActionButton(
-            label: 'View All Businesses',
-            icon: HugeIcons.strokeRoundedNote01,
-            onTap: () => setState(() => _selectedIndex = 1),
+            label: 'SSM & KYC Approvals',
+            icon: HugeIcons.strokeRoundedLegal01,
+            onTap: () => setState(() => _activeSubView = 'kyc'),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           _QuickActionButton(
-            label: 'Generate Reports',
-            icon: HugeIcons.strokeRoundedInvoice01,
-            onTap: () {},
+            label: 'DuitNow Payout Clearing',
+            icon: HugeIcons.strokeRoundedBank,
+            onTap: () => setState(() => _activeSubView = 'payouts'),
+          ),
+          const SizedBox(height: 10),
+          _QuickActionButton(
+            label: 'Ghost Login / Impersonate',
+            icon: HugeIcons.strokeRoundedUserAccount,
+            onTap: () => setState(() => _activeSubView = 'impersonation'),
+          ),
+          const SizedBox(height: 10),
+          _QuickActionButton(
+            label: 'Platform Emergency Controls',
+            icon: HugeIcons.strokeRoundedShield01,
+            onTap: () => setState(() => _activeSubView = 'killswitch'),
+          ),
+          const SizedBox(height: 10),
+          _QuickActionButton(
+            label: 'Platform Revenue & Take-Rate',
+            icon: HugeIcons.strokeRoundedChartIncrease,
+            onTap: () => setState(() => _activeSubView = 'revenue'),
+          ),
+          const SizedBox(height: 10),
+          _QuickActionButton(
+            label: 'Subscription Plan Manager',
+            icon: HugeIcons.strokeRoundedCrown02,
+            onTap: () => setState(() => _activeSubView = 'subscriptions'),
+          ),
+          const SizedBox(height: 10),
+          _QuickActionButton(
+            label: 'Lihat Direktori Peniaga',
+            icon: HugeIcons.strokeRoundedNote01,
+            onTap: () => setState(() {
+              _selectedIndex = 1;
+              _activeSubView = null;
+            }),
           ),
         ],
       ),

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import '../../../core/services/app_update_service.dart';
 
 class SettingsView extends StatelessWidget {
   const SettingsView({super.key});
@@ -137,6 +138,29 @@ class SettingsView extends StatelessWidget {
                           Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white.withValues(alpha: 0.5)),
                         ],
                       ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // ─── Sistem & Kemas Kini ─────────────────────────────
+              _buildSectionHeader("System & Updates"),
+              _buildGlassSection(
+                Column(
+                  children: [
+                    _buildSettingsTile(
+                      HugeIcons.strokeRoundedCloudDownload,
+                      "Semak Kemas Kini",
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text('v${AppUpdateService.currentVersion}', style: TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold)),
+                          const SizedBox(width: 8),
+                          Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white.withValues(alpha: 0.5)),
+                        ],
+                      ),
+                      onTap: () => AppUpdateService.checkManually(context),
                     ),
                   ],
                 ),

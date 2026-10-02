@@ -23,6 +23,7 @@ import 'platform_revenue_view.dart';
 import 'subscription_manager_view.dart';
 import 'widgets/stat_card.dart';
 import 'widgets/bottom_nav.dart';
+import '../../../core/services/app_update_service.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
@@ -34,6 +35,12 @@ class Dashboard extends StatefulWidget {
 class _DashboardState extends State<Dashboard> {
   int _selectedIndex = 0;
   String? _activeSubView;
+
+  @override
+  void initState() {
+    super.initState();
+    AppUpdateService.checkOnStartup(context);
+  }
 
   static const _navItems = [
     (icon: HugeIcons.strokeRoundedHome11, label: 'Overview'),

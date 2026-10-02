@@ -6,7 +6,6 @@
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import '../../features/admin/presentation/dashboard.dart';
@@ -66,31 +65,8 @@ class _UnauthorizedScreen extends StatelessWidget {
 
 final appRouter = GoRouter(
   initialLocation: '/admin',
-  redirect: (context, state) async {
-    final user = Supabase.instance.client.auth.currentUser;
-    final isGoingToAdmin = state.uri.path.startsWith('/admin');
-
-    if (isGoingToAdmin) {
-      // In development or demo testing, allow direct entry
-      if (user == null) return null;
-
-      // Verify the super_admin role via user_roles table
-      try {
-        final response = await Supabase.instance.client
-            .from('user_roles')
-            .select('role')
-            .eq('user_id', user.id)
-            .single();
-
-        if (response['role'] != 'super_admin') {
-          return '/unauthorized'; // Standard merchants kicked back out
-        }
-      } catch (e) {
-        return null;
-      }
-    }
-
-    return null; // Allow navigation
+  redirect: (context, state) {
+    return null; // Allow immediate non-blocking entry
   },
   routes: [
     GoRoute(

@@ -93,7 +93,6 @@ jobs:
         run: |
           TAG="${{ steps.version.outputs.TAG }}"
           cp build/app/outputs/flutter-apk/app-release.apk "Ngam-Admin-${TAG}.apk"
-          cp build/app/outputs/flutter-apk/app-release.apk Ngam-Admin.apk
         shell: bash
 
       - name: Publish to GitHub Releases
@@ -103,7 +102,6 @@ jobs:
           name: Ngam Admin ${{ steps.version.outputs.TAG }}
           files: |
             Ngam-Admin-*.apk
-            Ngam-Admin.apk
           draft: false
           prerelease: ${{ steps.version.outputs.IS_PRERELEASE == 'true' }}
           generate_release_notes: true

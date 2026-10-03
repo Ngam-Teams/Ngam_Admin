@@ -155,7 +155,7 @@ class SettingsView extends StatelessWidget {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          const Text('v${AppUpdateService.currentVersion}', style: TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold)),
+                          Text('v${AppUpdateService.currentVersion}', style: const TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold)),
                           const SizedBox(width: 8),
                           Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white.withValues(alpha: 0.5)),
                         ],

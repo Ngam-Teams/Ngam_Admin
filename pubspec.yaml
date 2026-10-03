@@ -1,7 +1,7 @@
 name: ngam_admin
 description: "Ngam Admin – Super Admin portal for the multi-tenant SaaS ecosystem."
 publish_to: 'none'
-version: 0.1.12+1
+version: 0.1.13+1
 
 environment:
   sdk: ^3.8.1

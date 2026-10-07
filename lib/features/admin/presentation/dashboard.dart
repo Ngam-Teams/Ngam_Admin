@@ -21,7 +21,6 @@ import 'impersonation_view.dart';
 import 'system_control_view.dart';
 import 'platform_revenue_view.dart';
 import 'subscription_manager_view.dart';
-import 'widgets/stat_card.dart';
 import 'widgets/bottom_nav.dart';
 import '../../../core/services/app_update_service.dart';
 
@@ -300,150 +299,276 @@ class _DashboardState extends State<Dashboard> {
         final active = data?['activeCount']?.toString() ?? '—';
         final suspended = data?['suspendedCount']?.toString() ?? '—';
 
-        final cards = [
-          StatCard(
-            label: 'Platform Revenue',
-            value: data == null ? '...' : formatCurrency.format(rev),
-            subtitle: '↑ Expected collection this month',
-            icon: HugeIcons.strokeRoundedChartIncrease,
-            accentColor: const Color(0xFF6C63FF),
-          ),
-          StatCard(
-            label: 'Total Businesses',
-            value: data == null ? '...' : businesses,
-            subtitle: 'Registered businesses',
-            icon: HugeIcons.strokeRoundedBuilding03,
-            accentColor: const Color(0xFF4ECDC4),
-          ),
-          StatCard(
-            label: 'Active Subscriptions',
-            value: data == null ? '...' : active,
-            subtitle: 'Active / Trial businesses',
-            icon: HugeIcons.strokeRoundedTickDouble01,
-            accentColor: const Color(0xFF44CF6C),
-          ),
-          StatCard(
-            label: 'Suspended Accounts',
-            value: data == null ? '...' : suspended,
-            icon: HugeIcons.strokeRoundedCancel01,
-            accentColor: const Color(0xFFFF6B6B),
-          ),
-        ];
+        return LayoutBuilder(
+          builder: (context, constraints) {
+            final width = constraints.maxWidth;
 
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final width = constraints.maxWidth;
-        int crossAxisCount = 1;
-        if (width >= 1000) {
-          crossAxisCount = 4;
-        } else if (width >= 600) {
-          crossAxisCount = 2;
-        }
+            return SingleChildScrollView(
+              padding: const EdgeInsets.only(bottom: 160),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. Responsive 4 Stat Cards (2x2 Grid on Mobile like Pusat Operasi)
+                  _buildAdminOverviewStats(
+                    width: width,
+                    data: data,
+                    rev: rev,
+                    businesses: businesses,
+                    active: active,
+                    suspended: suspended,
+                    formatCurrency: formatCurrency,
+                  ),
+                  const SizedBox(height: 24),
 
-        return SingleChildScrollView(
-          padding: const EdgeInsets.only(bottom: 160),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Responsive Stat Cards
-              _buildResponsiveStatCards(cards, crossAxisCount),
-              const SizedBox(height: 24),
+                  // 2. Pusat Kawalan Pantas Super Admin (Quick Command Center)
+                  _buildSuperAdminCommandCenter(isDesktop),
+                  const SizedBox(height: 24),
 
-              // 2. Pusat Kawalan Pantas Super Admin (Quick Command Center)
-              _buildSuperAdminCommandCenter(isDesktop),
-              const SizedBox(height: 24),
-
-              // 3. Responsive Dashboard Widgets
-              if (width >= 1000)
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(flex: 2, child: _buildRecentActivity()),
-                    const SizedBox(width: 24),
-                    Expanded(
-                      flex: 1,
-                      child: Column(
-                        children: [
-                          _buildSystemHealth(),
-                          const SizedBox(height: 24),
-                          _buildQuickActions(),
-                        ],
-                      ),
+                  // 3. Responsive Dashboard Widgets
+                  if (width >= 1000)
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Expanded(flex: 2, child: _buildRecentActivity()),
+                        const SizedBox(width: 24),
+                        Expanded(
+                          flex: 1,
+                          child: Column(
+                            children: [
+                              _buildSystemHealth(),
+                              const SizedBox(height: 24),
+                              _buildQuickActions(),
+                            ],
+                          ),
+                        ),
+                      ],
+                    )
+                  else
+                    Column(
+                      children: [
+                        _buildRecentActivity(),
+                        const SizedBox(height: 24),
+                        _buildSystemHealth(),
+                        const SizedBox(height: 24),
+                        _buildQuickActions(),
+                      ],
                     ),
-                  ],
-                )
-              else
-                Column(
-                  children: [
-                    _buildRecentActivity(),
-                    const SizedBox(height: 24),
-                    _buildSystemHealth(),
-                    const SizedBox(height: 24),
-                    _buildQuickActions(),
-                  ],
-                ),
-              // 3. Optional loading/error indicator
-              if (snapshot.connectionState == ConnectionState.waiting)
-                const Padding(
-                  padding: EdgeInsets.all(16.0),
-                  child: Center(child: CircularProgressIndicator(color: Color(0xFF6C63FF))),
-                )
-              else if (snapshot.hasError)
-                Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Text('Error loading stats: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)),
-                ),
-            ],
-          ),
-        );
-      }, // closes LayoutBuilder builder
-    ); // closes LayoutBuilder
+                  // 4. Optional loading/error indicator
+                  if (snapshot.connectionState == ConnectionState.waiting)
+                    const Padding(
+                      padding: EdgeInsets.all(16.0),
+                      child: Center(child: CircularProgressIndicator(color: Color(0xFF6C63FF))),
+                    )
+                  else if (snapshot.hasError)
+                    Padding(
+                      padding: const EdgeInsets.all(16.0),
+                      child: Text('Error loading stats: ${snapshot.error}', style: const TextStyle(color: Colors.redAccent)),
+                    ),
+                ],
+              ),
+            );
+          }, // closes LayoutBuilder builder
+        ); // closes LayoutBuilder
       }, // closes FutureBuilder builder
     ); // closes FutureBuilder
   } // closes _buildOverviewPage
 
-  Widget _buildResponsiveStatCards(List<Widget> cards, int crossAxisCount) {
-    if (crossAxisCount == 4) {
-      return Row(
-        children: cards
-            .map((c) => Expanded(
-                  child: Padding(
-                    padding: EdgeInsets.only(left: cards.indexOf(c) == 0 ? 0 : 16.0),
-                    child: c,
-                  ),
-                ))
-            .toList(),
-      );
-    } else if (crossAxisCount == 2) {
-      return Column(
-        children: [
-          Row(
-            children: [
-              Expanded(child: cards[0]),
-              const SizedBox(width: 16),
-              Expanded(child: cards[1]),
-            ],
-          ),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(child: cards[2]),
-              const SizedBox(width: 16),
-              Expanded(child: cards[3]),
-            ],
-          ),
-        ],
+  Widget _buildAdminOverviewStats({
+    required double width,
+    required Map<String, dynamic>? data,
+    required dynamic rev,
+    required String businesses,
+    required String active,
+    required String suspended,
+    required NumberFormat formatCurrency,
+  }) {
+    final card0 = _buildAdminStatCard(
+      label: 'Platform Revenue',
+      value: data == null ? '...' : formatCurrency.format(rev),
+      badge: 'Kutipan',
+      badgeColor: const Color(0xFF6C63FF),
+      icon: HugeIcons.strokeRoundedChartIncrease,
+      accentColor: const Color(0xFF6C63FF),
+      onTap: () => setState(() => _activeSubView = 'revenue'),
+    );
+    final card1 = _buildAdminStatCard(
+      label: 'Total Businesses',
+      value: data == null ? '...' : businesses,
+      badge: 'Berdaftar',
+      badgeColor: const Color(0xFF4ECDC4),
+      icon: HugeIcons.strokeRoundedBuilding03,
+      accentColor: const Color(0xFF4ECDC4),
+      onTap: () => setState(() {
+        _selectedIndex = 1;
+        _activeSubView = null;
+      }),
+    );
+    final card2 = _buildAdminStatCard(
+      label: 'Active Subscriptions',
+      value: data == null ? '...' : active,
+      badge: 'Aktif',
+      badgeColor: const Color(0xFF44CF6C),
+      icon: HugeIcons.strokeRoundedTickDouble01,
+      accentColor: const Color(0xFF44CF6C),
+      onTap: () => setState(() => _activeSubView = 'subscriptions'),
+    );
+    final card3 = _buildAdminStatCard(
+      label: 'Suspended Accounts',
+      value: data == null ? '...' : suspended,
+      badge: 'Perhatian',
+      badgeColor: const Color(0xFFFF6B6B),
+      icon: HugeIcons.strokeRoundedCancel01,
+      accentColor: const Color(0xFFFF6B6B),
+      onTap: () => setState(() {
+        _selectedIndex = 1;
+        _activeSubView = null;
+      }),
+    );
+
+    if (width >= 1000) {
+      return IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(child: card0),
+            const SizedBox(width: 12),
+            Expanded(child: card1),
+            const SizedBox(width: 12),
+            Expanded(child: card2),
+            const SizedBox(width: 12),
+            Expanded(child: card3),
+          ],
+        ),
       );
     } else {
       return Column(
-        children: cards
-            .map((c) => Padding(
-                  padding: const EdgeInsets.only(bottom: 16.0),
-                  child: c,
-                ))
-            .toList(),
+        children: [
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: card0),
+                const SizedBox(width: 12),
+                Expanded(child: card1),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(child: card2),
+                const SizedBox(width: 12),
+                Expanded(child: card3),
+              ],
+            ),
+          ),
+        ],
       );
     }
+  }
+
+  Widget _buildAdminStatCard({
+    required String label,
+    required String value,
+    required String badge,
+    required Color badgeColor,
+    required dynamic icon,
+    required Color accentColor,
+    VoidCallback? onTap,
+  }) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.white.withValues(alpha: 0.05),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: accentColor.withValues(alpha: 0.22),
+              width: 1.1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: accentColor.withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: HugeIcon(
+                      icon: icon,
+                      color: accentColor,
+                      size: 20,
+                      strokeWidth: 2.1,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: badgeColor.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      badge,
+                      style: TextStyle(
+                        color: badgeColor,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 22,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.5,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: Colors.white.withValues(alpha: 0.65),
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Widget _buildSystemHealth() {
@@ -596,68 +721,171 @@ class _DashboardState extends State<Dashboard> {
       child: LayoutBuilder(
         builder: (context, constraints) {
           final isWide = constraints.maxWidth >= 700;
-          return Wrap(
-            spacing: 12,
-            runSpacing: 12,
-            children: commands.map((cmd) {
-              final cardWidth = isWide ? (constraints.maxWidth - 24) / 3 - 1 : (constraints.maxWidth - 12) / 2 - 1;
-              return InkWell(
-                onTap: () => setState(() => _activeSubView = cmd.subView),
-                borderRadius: BorderRadius.circular(16),
-                child: Container(
-                  width: cardWidth,
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.05),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: cmd.color.withValues(alpha: 0.25)),
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+
+          if (isWide) {
+            return Column(
+              children: [
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(10),
-                            decoration: BoxDecoration(
-                              color: cmd.color.withValues(alpha: 0.15),
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            child: HugeIcon(icon: cmd.icon, color: cmd.color, size: 20),
-                          ),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            decoration: BoxDecoration(
-                              color: cmd.badgeColor.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              cmd.badge,
-                              style: TextStyle(color: cmd.badgeColor, fontSize: 10, fontWeight: FontWeight.bold),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 14),
-                      Text(
-                        cmd.title,
-                        style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        cmd.subtitle,
-                        style: TextStyle(color: Colors.white.withValues(alpha: 0.5), fontSize: 11),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
+                      Expanded(child: _buildCommandCard(commands[0])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[1])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[2])),
                     ],
                   ),
                 ),
-              );
-            }).toList(),
-          );
+                const SizedBox(height: 12),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildCommandCard(commands[3])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[4])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[5])),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          } else {
+            return Column(
+              children: [
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildCommandCard(commands[0])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[1])),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildCommandCard(commands[2])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[3])),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
+                IntrinsicHeight(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Expanded(child: _buildCommandCard(commands[4])),
+                      const SizedBox(width: 12),
+                      Expanded(child: _buildCommandCard(commands[5])),
+                    ],
+                  ),
+                ),
+              ],
+            );
+          }
         },
+      ),
+    );
+  }
+
+  Widget _buildCommandCard(dynamic cmd) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => setState(() => _activeSubView = cmd.subView),
+        borderRadius: BorderRadius.circular(18),
+        splashColor: Colors.transparent,
+        highlightColor: Colors.white.withValues(alpha: 0.05),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.05),
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: (cmd.color as Color).withValues(alpha: 0.22),
+              width: 1.1,
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: (cmd.color as Color).withValues(alpha: 0.08),
+                blurRadius: 14,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(9),
+                    decoration: BoxDecoration(
+                      color: (cmd.color as Color).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: HugeIcon(
+                      icon: cmd.icon,
+                      color: cmd.color as Color,
+                      size: 20,
+                      strokeWidth: 2.1,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: (cmd.badgeColor as Color).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      cmd.badge,
+                      style: TextStyle(
+                        color: cmd.badgeColor as Color,
+                        fontSize: 10,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Text(
+                cmd.title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 14.5,
+                  fontWeight: FontWeight.w800,
+                  letterSpacing: -0.2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              SizedBox(
+                height: 32,
+                child: Text(
+                  cmd.subtitle,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 11.5,
+                    height: 1.3,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

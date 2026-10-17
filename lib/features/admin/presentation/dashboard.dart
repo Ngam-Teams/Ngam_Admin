@@ -45,7 +45,7 @@ class _DashboardState extends State<Dashboard> {
     (icon: HugeIcons.strokeRoundedHome11, label: 'Overview'),
     (icon: HugeIcons.strokeRoundedNote01, label: 'Businesses'),
     (icon: HugeIcons.strokeRoundedInvoice01, label: 'Billing'),
-    (icon: HugeIcons.strokeRoundedDatabase01, label: 'DB Health'),
+    (icon: HugeIcons.strokeRoundedRocket, label: 'DevOps & Infra'),
     (icon: HugeIcons.strokeRoundedSettings01, label: 'Settings'),
   ];
 
@@ -253,7 +253,7 @@ class _DashboardState extends State<Dashboard> {
       0 => 'Overview',
       1 => 'Business Directory',
       2 => 'Billing',
-      3 => 'DB Health',
+      3 => 'DevOps & Infrastructure',
       4 => 'Settings',
       _ => 'Admin',
     };

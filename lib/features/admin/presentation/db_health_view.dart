@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import 'widgets/stat_card.dart';
@@ -60,7 +61,7 @@ class _DbHealthViewState extends State<DbHealthView> {
   final List<_AppDeployTarget> _apps = [
     _AppDeployTarget(
       id: 'consumer',
-      name: 'Ngam Consumer (Explore & Web)',
+      name: 'Ngam Consumer',
       subtitle: 'Aplikasi carian peniaga, tempahan slot, pwa & pesanan pelanggan',
       repo: 'Ngam-Teams/Ngam',
       url: 'https://ngam.dev',
@@ -73,7 +74,7 @@ class _DbHealthViewState extends State<DbHealthView> {
     ),
     _AppDeployTarget(
       id: 'business',
-      name: 'Ngam Business (Merchant Portal)',
+      name: 'Ngam Business',
       subtitle: 'Portal operasi peniaga, POS, katalog produk & analitik jualan',
       repo: 'Ngam-Teams/Ngam_Business',
       url: 'https://business.ngam.dev',
@@ -86,7 +87,7 @@ class _DbHealthViewState extends State<DbHealthView> {
     ),
     _AppDeployTarget(
       id: 'teams',
-      name: 'Ngam Teams (Staff & Operasi)',
+      name: 'Ngam Teams',
       subtitle: 'Aplikasi pekerja, komisen, paparan dapur (KDS) & kehadiran',
       repo: 'Ngam-Teams/Ngam_Teams',
       url: 'Android APK • PWA Web',
@@ -99,7 +100,7 @@ class _DbHealthViewState extends State<DbHealthView> {
     ),
     _AppDeployTarget(
       id: 'admin',
-      name: 'Ngam Admin (Platform Console)',
+      name: 'Ngam Admin',
       subtitle: 'Portal kawalan platform, pengesahan SSM KYC & pembayaran',
       repo: 'Ngam-Teams/Ngam_Admin',
       url: 'https://admin.ngam.dev',
@@ -353,22 +354,20 @@ class _DbHealthViewState extends State<DbHealthView> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Row(
+                        Wrap(
+                          spacing: 10,
+                          runSpacing: 6,
+                          crossAxisAlignment: WrapCrossAlignment.center,
                           children: [
-                            const Flexible(
-                              child: Text(
-                                'Pusat Pelancaran & Cloud Deployment (CI/CD)',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: -0.3,
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
+                            const Text(
+                              'Pusat Pelancaran',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 18,
+                                fontWeight: FontWeight.w700,
+                                letterSpacing: -0.3,
                               ),
                             ),
-                            const SizedBox(width: 10),
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                               decoration: BoxDecoration(
@@ -659,8 +658,9 @@ class _DbHealthViewState extends State<DbHealthView> {
                         app.name,
                         style: const TextStyle(
                           color: Colors.white,
-                          fontSize: 14.5,
+                          fontSize: 15,
                           fontWeight: FontWeight.w700,
+                          letterSpacing: -0.2,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -719,20 +719,23 @@ class _DbHealthViewState extends State<DbHealthView> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Row(
                   children: [
-                    Text(
-                      app.url,
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.5),
-                        fontSize: 12,
-                        fontFamily: 'monospace',
+                    Flexible(
+                      child: Text(
+                        app.url,
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.5),
+                          fontSize: 11.5,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
-                    const SizedBox(width: 8),
+                    const SizedBox(width: 6),
                     Text(
-                      '• branch: ${app.branch}',
+                      '· branch: ${app.branch}',
                       style: TextStyle(
                         color: Colors.white.withValues(alpha: 0.35),
                         fontSize: 11,
@@ -746,13 +749,11 @@ class _DbHealthViewState extends State<DbHealthView> {
 
           const SizedBox(width: 12),
 
-          // Switch Toggle
-          Switch.adaptive(
+          // Switch Toggle (CupertinoSwitch matching Ngam Teams Profile page)
+          CupertinoSwitch(
             value: app.isSelected,
-            activeColor: app.color,
-            activeTrackColor: app.color.withValues(alpha: 0.4),
-            inactiveThumbColor: Colors.white38,
-            inactiveTrackColor: Colors.white10,
+            activeTrackColor: const Color(0xFF2196F3),
+            inactiveTrackColor: Colors.grey.shade800,
             onChanged: (val) {
               setState(() {
                 app.isSelected = val;

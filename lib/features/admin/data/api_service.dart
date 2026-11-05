@@ -5,9 +5,7 @@
 // service_role key never lives in the Flutter binary.
 // =============================================================================
 
-import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:http/http.dart' as http;
 
 import '../models/business_summary_model.dart';
 
@@ -163,27 +161,21 @@ class ApiService {
     }
   }
 
-  /// Fetches hardware metrics (CPU, RAM) directly from the Supabase Prometheus endpoint.
-  /// Fetches hardware metrics (CPU, RAM, Disk) directly from the Supabase Prometheus endpoint.
+  /// Fetches hardware metrics (CPU, RAM, Disk) strictly through the privileged Edge Function
+  /// so the `service_role` key is never bundled inside the Flutter binary.
   Future<Map<String, double>> fetchHardwareMetrics() async {
-    const String projectRef = 'rsueaoglsdxhzpupjljd';
-    const String serviceRoleKey =
-        'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InJzdWVhb2dsc2R4aHpwdXBqbGpkIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4NzA0ODQ5NSwiZXhwIjoyMTAyNjI0NDk1fQ.io35uwcD8d_iqZYKm1CTA1ejcBMfci4RtqjfGuj-EE8';
-
     try {
-      final basicAuth = 'Basic ${base64Encode(utf8.encode('service_role:$serviceRoleKey'))}';
-      final response = await http.get(
-        Uri.parse('https://$projectRef.supabase.co/customer/v1/privileged/metrics'),
-        headers: {
-          'Authorization': basicAuth,
-        },
-      );
+      final result = await _invokeAction({'action': 'get_hardware_metrics'});
 
-      if (response.statusCode != 200) {
-        throw AdminApiException('Failed to fetch hardware metrics: ${response.statusCode}');
+      if (result.containsKey('cpu') && result.containsKey('ram')) {
+        return {
+          'cpu': (result['cpu'] as num?)?.toDouble() ?? 1.21,
+          'ram': (result['ram'] as num?)?.toDouble() ?? 49.0,
+          'disk': (result['disk'] as num?)?.toDouble() ?? 13.0,
+        };
       }
 
-      final body = response.body;
+      final body = (result['raw_metrics'] as String?) ?? '';
 
       double cpuUsage = 1.21;
       double memoryUsage = 49.0;

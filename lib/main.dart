@@ -13,6 +13,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/router/app_router.dart';
+import 'core/services/app_update_service.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -36,6 +37,7 @@ class _NgamAdminAppState extends State<NgamAdminApp> {
   }
 
   Future<void> _bootstrap() async {
+    AppUpdateService.getAppVersion().catchError((_) => AppUpdateService.fallbackVersion);
     try {
       await dotenv.load(fileName: ".env");
     } catch (_) {}

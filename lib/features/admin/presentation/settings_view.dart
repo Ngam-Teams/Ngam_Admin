@@ -152,15 +152,66 @@ class SettingsView extends StatelessWidget {
                     _buildSettingsTile(
                       HugeIcons.strokeRoundedCloudDownload,
                       "Semak Kemas Kini",
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text('v${AppUpdateService.currentVersion}', style: const TextStyle(color: Color(0xFF10B981), fontSize: 13, fontWeight: FontWeight.bold)),
-                          const SizedBox(width: 8),
-                          Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white.withValues(alpha: 0.5)),
-                        ],
+                      trailing: ValueListenableBuilder<String>(
+                        valueListenable: AppUpdateService.versionNotifier,
+                        builder: (context, ver, _) {
+                          return ValueListenableBuilder<AppReleaseInfo?>(
+                            valueListenable: AppUpdateService.availableUpdateNotifier,
+                            builder: (context, update, _) {
+                              final hasUpdate = update != null;
+                              final Color statusColor = hasUpdate
+                                  ? Colors.amberAccent
+                                  : const Color(0xFF10B981);
+                              return Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 3,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(
+                                        alpha: hasUpdate ? 0.16 : 0.10,
+                                      ),
+                                      borderRadius: BorderRadius.circular(8),
+                                      border: Border.all(
+                                        color: statusColor.withValues(
+                                          alpha: hasUpdate ? 0.45 : 0.25,
+                                        ),
+                                      ),
+                                    ),
+                                    child: Text(
+                                      hasUpdate
+                                          ? 'Update v${update.version}'
+                                          : 'v$ver • TERKINI',
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward_ios,
+                                    size: 14,
+                                    color: Colors.white.withValues(alpha: 0.5),
+                                  ),
+                                ],
+                              );
+                            },
+                          );
+                        },
                       ),
-                      onTap: () => AppUpdateService.checkManually(context),
+                      onTap: () {
+                        final update = AppUpdateService.availableUpdateNotifier.value;
+                        if (update != null) {
+                          AppUpdateService.showUpdateDialog(context, update);
+                        } else {
+                          AppUpdateService.checkManually(context);
+                        }
+                      },
                     ),
                   ],
                 ),

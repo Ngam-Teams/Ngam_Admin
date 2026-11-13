@@ -1,9 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'pwa_reloader.dart';
 import '../../widgets/glass_toast.dart';
 
 class AppReleaseInfo {
@@ -13,6 +15,7 @@ class AppReleaseInfo {
   final String downloadUrl;
   final String releaseUrl;
   final DateTime? publishedAt;
+  final bool isWebReloadReady;
 
   AppReleaseInfo({
     required this.version,
@@ -21,12 +24,17 @@ class AppReleaseInfo {
     required this.downloadUrl,
     required this.releaseUrl,
     this.publishedAt,
+    this.isWebReloadReady = false,
   });
 }
 
 class AppUpdateService {
-  static const String fallbackVersion = '0.1.12';
+  static const String fallbackVersion = '0.1.18';
   static String? _cachedVersion;
+  static bool _startupDialogShown = false;
+
+  static final ValueNotifier<String> versionNotifier = ValueNotifier<String>(fallbackVersion);
+  static final ValueNotifier<AppReleaseInfo?> availableUpdateNotifier = ValueNotifier<AppReleaseInfo?>(null);
 
   static String get currentVersion => _cachedVersion ?? fallbackVersion;
 
@@ -43,15 +51,17 @@ class AppUpdateService {
       final info = await PackageInfo.fromPlatform();
       if (info.version.isNotEmpty) {
         _cachedVersion = info.version;
+        versionNotifier.value = _cachedVersion!;
         return _cachedVersion!;
       }
     } catch (e) {
       debugPrint('[AppUpdateService] Error fetching package version: $e');
     }
+    versionNotifier.value = fallbackVersion;
     return fallbackVersion;
   }
 
-  /// Compare semantic versions (e.g. "0.1.10" vs "0.1.9")
+  /// Compare semantic versions (e.g. "0.1.19" vs "0.1.18")
   static bool isNewerVersion(String remote, String current) {
     try {
       final cleanRemote = remote.replaceAll(RegExp(r'[^0-9.]'), '');
@@ -78,7 +88,26 @@ class AppUpdateService {
     }
   }
 
-  /// Check GitHub Releases API for the latest published release
+  /// Fetch live deployed Web / PWA version from root /version.json
+  static Future<String?> _fetchWebLiveVersion() async {
+    if (!kIsWeb) return null;
+    try {
+      final uri = Uri.base.resolve('/version.json?t=${DateTime.now().millisecondsSinceEpoch}');
+      final response = await http.get(uri).timeout(const Duration(seconds: 6));
+      if (response.statusCode == 200) {
+        final decoded = json.decode(response.body);
+        if (decoded is Map && decoded['version'] != null) {
+          final ver = decoded['version'].toString().trim();
+          if (ver.isNotEmpty) return ver;
+        }
+      }
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error fetching web /version.json: $e');
+    }
+    return null;
+  }
+
+  /// Check live Web /version.json and GitHub Releases API for latest update
   static Future<AppReleaseInfo?> checkForUpdate({
     String? current,
     String repo = repoName,
@@ -86,27 +115,75 @@ class AppUpdateService {
     try {
       final activeVersion = current ?? await getAppVersion();
 
-      final client = HttpClient();
-      client.connectionTimeout = const Duration(seconds: 10);
+      final futures = await Future.wait([
+        (kIsWeb && repo == repoName) ? _fetchWebLiveVersion() : Future<String?>.value(null),
+        _fetchGitHubRelease(repo),
+      ]);
 
+      final webVersion = futures[0] as String?;
+      final ghRelease = futures[1] as AppReleaseInfo?;
+
+      final bool hasWebNewer = webVersion != null && isNewerVersion(webVersion, activeVersion);
+      final bool hasGhNewer = ghRelease != null && isNewerVersion(ghRelease.version, activeVersion);
+
+      AppReleaseInfo? result;
+      if (hasWebNewer) {
+        final bool sameOrNewerFromWeb =
+            ghRelease != null && !isNewerVersion(ghRelease.version, webVersion);
+        result = AppReleaseInfo(
+          version: webVersion,
+          title: sameOrNewerFromWeb ? ghRelease.title : '$appName v$webVersion',
+          changelog: sameOrNewerFromWeb ? ghRelease.changelog : '',
+          downloadUrl: ghRelease?.downloadUrl ?? 'https://github.com/$orgName/$repo/releases',
+          releaseUrl: ghRelease?.releaseUrl ?? 'https://github.com/$orgName/$repo/releases',
+          publishedAt: ghRelease?.publishedAt,
+          isWebReloadReady: true,
+        );
+      } else if (hasGhNewer) {
+        result = AppReleaseInfo(
+          version: ghRelease.version,
+          title: ghRelease.title,
+          changelog: ghRelease.changelog,
+          downloadUrl: ghRelease.downloadUrl,
+          releaseUrl: ghRelease.releaseUrl,
+          publishedAt: ghRelease.publishedAt,
+          isWebReloadReady: false,
+        );
+      }
+
+      if (repo == repoName) {
+        availableUpdateNotifier.value = result;
+      }
+      return result;
+    } catch (e) {
+      debugPrint('[AppUpdateService] Error checking for update: $e');
+      return null;
+    }
+  }
+
+  static Future<AppReleaseInfo?> _fetchGitHubRelease(String repo) async {
+    try {
       final uri = Uri.parse('https://api.github.com/repos/$orgName/$repo/releases/latest');
-      final request = await client.getUrl(uri);
-      request.headers.set('User-Agent', 'NgamAdminApp');
-      request.headers.set('Accept', 'application/vnd.github.v3+json');
+      final response = await http
+          .get(
+            uri,
+            headers: kIsWeb
+                ? const {'Accept': 'application/vnd.github.v3+json'}
+                : const {
+                    'User-Agent': 'NgamAdminApp',
+                    'Accept': 'application/vnd.github.v3+json',
+                  },
+          )
+          .timeout(const Duration(seconds: 10));
 
-      final response = await request.close();
       if (response.statusCode != 200) {
-        client.close();
         return null;
       }
 
-      final body = await response.transform(utf8.decoder).join();
-      client.close();
-
-      final data = json.decode(body) as Map<String, dynamic>;
+      final data = json.decode(response.body) as Map<String, dynamic>;
       final tagName = data['tag_name'] as String? ?? '';
       final releaseName = data['name'] as String? ?? tagName;
-      final changelog = data['body'] as String? ?? 'Pembaikan pepijat dan peningkatan kestabilan.';
+      final changelog = data['body'] as String? ?? '';
       final htmlUrl = data['html_url'] as String? ?? 'https://github.com/$orgName/$repo/releases';
 
       final publishedStr = data['published_at'] as String?;
@@ -115,7 +192,6 @@ class AppUpdateService {
         publishedAt = DateTime.tryParse(publishedStr);
       }
 
-      // Find APK asset
       String downloadUrl = htmlUrl;
       final assets = data['assets'] as List<dynamic>? ?? [];
       for (final asset in assets) {
@@ -127,19 +203,18 @@ class AppUpdateService {
       }
 
       final remoteVersion = tagName.replaceFirst('v', '').trim();
-      if (isNewerVersion(remoteVersion, activeVersion)) {
-        return AppReleaseInfo(
-          version: remoteVersion,
-          title: releaseName,
-          changelog: changelog,
-          downloadUrl: downloadUrl,
-          releaseUrl: htmlUrl,
-          publishedAt: publishedAt,
-        );
-      }
-      return null;
+      if (remoteVersion.isEmpty) return null;
+
+      return AppReleaseInfo(
+        version: remoteVersion,
+        title: releaseName,
+        changelog: changelog,
+        downloadUrl: downloadUrl,
+        releaseUrl: htmlUrl,
+        publishedAt: publishedAt,
+      );
     } catch (e) {
-      debugPrint('[AppUpdateService] Error checking for update: $e');
+      debugPrint('[AppUpdateService] GitHub release lookup error: $e');
       return null;
     }
   }
@@ -161,6 +236,10 @@ class AppUpdateService {
     final activeCurrent = current ?? await getAppVersion();
     if (!context.mounted) return;
 
+    final String changelogText = update.changelog.trim().isNotEmpty
+        ? update.changelog.trim()
+        : 'Pembaikan pepijat dan peningkatan kestabilan.';
+
     return showDialog<void>(
       context: context,
       barrierDismissible: true,
@@ -175,6 +254,7 @@ class AppUpdateService {
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
               child: Container(
+                constraints: const BoxConstraints(maxWidth: 440),
                 decoration: BoxDecoration(
                   gradient: LinearGradient(
                     begin: Alignment.topLeft,
@@ -248,7 +328,9 @@ class AppUpdateService {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Versi terkini sedia dimuat turun',
+                                kIsWeb && update.isWebReloadReady
+                                    ? 'Binaan web & PWA baharu tersedia di pelayan'
+                                    : 'Versi terkini sedia dimuat turun',
                                 style: TextStyle(
                                   fontSize: 12,
                                   color: Colors.white.withValues(alpha: 0.6),
@@ -261,57 +343,94 @@ class AppUpdateService {
                     ),
                     const SizedBox(height: 18),
 
-                    // Version Pill Badge (Glass)
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.06),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.12),
+                    // Version Pill Badge + optional Release Info button on Web
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.06),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: Colors.white.withValues(alpha: 0.12),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                'Versi Semasa: v$activeCurrent',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.65),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              const Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 14,
+                                color: Color(0xFF6C63FF),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF6C63FF).withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  'v${update.version}',
+                                  style: const TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: Color(0xFFA5B4FC),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Versi Semasa: v$activeCurrent',
-                            style: TextStyle(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white.withValues(alpha: 0.65),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          const Icon(
-                            Icons.arrow_forward_rounded,
-                            size: 14,
-                            color: Color(0xFF6C63FF),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF6C63FF).withValues(alpha: 0.25),
-                              borderRadius: BorderRadius.circular(6),
-                            ),
-                            child: Text(
-                              'v${update.version}',
-                              style: const TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: Color(0xFFA5B4FC),
+                        if (kIsWeb && update.releaseUrl.isNotEmpty)
+                          InkWell(
+                            borderRadius: BorderRadius.circular(10),
+                            onTap: () => launchDownload(update.releaseUrl),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.06),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: Colors.white.withValues(alpha: 0.12)),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(Icons.open_in_new_rounded, size: 13, color: Color(0xFFA5B4FC)),
+                                  SizedBox(width: 5),
+                                  Text(
+                                    'Info Pelepasan',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: Color(0xFFA5B4FC),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ],
-                      ),
+                      ],
                     ),
                     const SizedBox(height: 14),
 
                     // Description
                     Text(
-                      'Terdapat kemas kini baharu untuk aplikasi $appName. Muat turun APK terkini untuk fungsi baharu, prestasi terpantas dan kestabilan sistem.',
+                      kIsWeb
+                          ? 'Versi web & PWA baharu bagi $appName (v${update.version}) telah tersedia! Muat semula sekarang untuk bersihkan cache dan gunakan binaan terkini.'
+                          : 'Terdapat kemas kini baharu untuk aplikasi $appName. Muat turun APK terkini untuk fungsi baharu, prestasi terpantas dan kestabilan sistem.',
                       style: TextStyle(
                         fontSize: 13,
                         color: Colors.white.withValues(alpha: 0.78),
@@ -319,8 +438,8 @@ class AppUpdateService {
                       ),
                     ),
 
-                    // Changelog Box (if available)
-                    if (update.changelog.trim().isNotEmpty) ...[
+                    // Changelog Box
+                    if (changelogText.isNotEmpty) ...[
                       const SizedBox(height: 14),
                       Container(
                         constraints: const BoxConstraints(maxHeight: 120),
@@ -335,7 +454,7 @@ class AppUpdateService {
                         ),
                         child: SingleChildScrollView(
                           child: Text(
-                            update.changelog,
+                            changelogText,
                             style: TextStyle(
                               fontSize: 11,
                               color: Colors.white.withValues(alpha: 0.65),
@@ -392,10 +511,25 @@ class AppUpdateService {
                             child: ElevatedButton.icon(
                               onPressed: () {
                                 Navigator.of(ctx).pop();
-                                launchDownload(update.downloadUrl);
+                                if (kIsWeb) {
+                                  if (context.mounted) {
+                                    showGlassToast(
+                                      context,
+                                      'Membersihkan cache & memuatkan versi terkini...',
+                                      type: GlassToastType.info,
+                                      color: const Color(0xFF6C63FF),
+                                    );
+                                  }
+                                  reloadWebPwa(update.version);
+                                } else {
+                                  launchDownload(update.downloadUrl);
+                                }
                               },
-                              icon: const Icon(Icons.download_rounded, size: 18),
-                              label: const Text('Kemas Kini'),
+                              icon: Icon(
+                                kIsWeb ? Icons.refresh_rounded : Icons.download_rounded,
+                                size: 18,
+                              ),
+                              label: Text(kIsWeb ? 'Muat Semula Sekarang' : 'Kemas Kini'),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: Colors.transparent,
                                 foregroundColor: Colors.white,
@@ -431,12 +565,13 @@ class AppUpdateService {
 
     final activeCurrent = current ?? await getAppVersion();
     final update = await checkForUpdate(current: activeCurrent, repo: repo);
-    if (update != null && context.mounted) {
+    if (update != null && context.mounted && !_startupDialogShown) {
+      _startupDialogShown = true;
       await showUpdateDialog(context, update, current: activeCurrent);
     }
   }
 
-  /// Explicit check triggered from Settings page with user feedback
+  /// Explicit check triggered from Settings / TopBar / Login page with user feedback
   static Future<void> checkManually(
     BuildContext context, {
     String? current,

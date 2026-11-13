@@ -175,8 +175,101 @@ class _DashboardState extends State<Dashboard> {
 
               const Spacer(),
 
-              // Bottom spacer for rail
-              const SizedBox(height: 24),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 14),
+                child: ValueListenableBuilder<String>(
+                  valueListenable: AppUpdateService.versionNotifier,
+                  builder: (context, ver, _) {
+                    return ValueListenableBuilder<AppReleaseInfo?>(
+                      valueListenable: AppUpdateService.availableUpdateNotifier,
+                      builder: (context, update, _) {
+                        final hasUpdate = update != null;
+                        final Color statusColor = hasUpdate
+                            ? Colors.amberAccent
+                            : const Color(0xFF10B981);
+                        return Tooltip(
+                          message: 'Klik untuk semak kemas kini',
+                          child: InkWell(
+                            onTap: () {
+                              if (update != null) {
+                                AppUpdateService.showUpdateDialog(
+                                    context, update);
+                              } else {
+                                AppUpdateService.checkManually(context);
+                              }
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: statusColor.withValues(
+                                  alpha: hasUpdate ? 0.14 : 0.08,
+                                ),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: statusColor.withValues(
+                                    alpha: hasUpdate ? 0.45 : 0.25,
+                                  ),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 7,
+                                    height: 7,
+                                    decoration: BoxDecoration(
+                                      color: statusColor,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      'Admin v$ver',
+                                      style: const TextStyle(
+                                        color: Colors.white70,
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 6,
+                                      vertical: 2,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: statusColor.withValues(alpha: 0.2),
+                                      borderRadius: BorderRadius.circular(6),
+                                    ),
+                                    child: Text(
+                                      hasUpdate
+                                          ? 'Update v${update.version}'
+                                          : 'TERKINI',
+                                      style: TextStyle(
+                                        color: statusColor,
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    );
+                  },
+                ),
+              ),
+
+              const SizedBox(height: 16),
             ],
           ),
         ),
@@ -202,28 +295,35 @@ class _DashboardState extends State<Dashboard> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    _pageTitle,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: -0.5,
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      _pageTitle,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 28,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.5,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Super Admin Portal',
-                    style: TextStyle(
-                      color: Colors.white.withValues(alpha: 0.4),
-                      fontSize: 14,
+                    const SizedBox(height: 4),
+                    Text(
+                      'Super Admin Portal',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.4),
+                        fontSize: 14,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+              const SizedBox(width: 8),
               _buildTopBarActions(),
             ],
           ),
@@ -1009,7 +1109,77 @@ class _DashboardState extends State<Dashboard> {
 
   Widget _buildTopBarActions() {
     return Row(
+      mainAxisSize: MainAxisSize.min,
       children: [
+        ValueListenableBuilder<String>(
+          valueListenable: AppUpdateService.versionNotifier,
+          builder: (context, ver, _) {
+            return ValueListenableBuilder<AppReleaseInfo?>(
+              valueListenable: AppUpdateService.availableUpdateNotifier,
+              builder: (context, update, _) {
+                final hasUpdate = update != null;
+                final Color statusColor =
+                    hasUpdate ? Colors.amberAccent : const Color(0xFF10B981);
+                return Tooltip(
+                  message: 'Ngam Admin v$ver — Klik untuk semak kemas kini',
+                  child: InkWell(
+                    onTap: () {
+                      if (update != null) {
+                        AppUpdateService.showUpdateDialog(context, update);
+                      } else {
+                        AppUpdateService.checkManually(context);
+                      }
+                    },
+                    borderRadius: BorderRadius.circular(10),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: statusColor.withValues(
+                          alpha: hasUpdate ? 0.16 : 0.08,
+                        ),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(
+                          color: statusColor.withValues(
+                            alpha: hasUpdate ? 0.45 : 0.25,
+                          ),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: statusColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          Text(
+                            hasUpdate
+                                ? 'Update v${update.version}'
+                                : 'v$ver • TERKINI',
+                            style: TextStyle(
+                              color: statusColor,
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w700,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
+            );
+          },
+        ),
+        const SizedBox(width: 4),
         IconButton(
           icon: const HugeIcon(icon: HugeIcons.strokeRoundedNotification02, color: Colors.white54, size: 20, strokeWidth: 2.1),
           onPressed: () {},

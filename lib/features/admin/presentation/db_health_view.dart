@@ -1,11 +1,16 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:ui';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:http/http.dart' as http;
 import 'package:hugeicons/hugeicons.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import 'widgets/stat_card.dart';
 import '../data/api_service.dart';
+import '../../../core/services/app_update_service.dart';
 import '../../../widgets/glass_toast.dart';
 
 class _AppDeployTarget {
@@ -20,6 +25,9 @@ class _AppDeployTarget {
   final Color color;
   bool isSelected;
   String status;
+  String? latestVersion;
+  String? releaseUrl;
+  bool isChecking;
 
   _AppDeployTarget({
     required this.id,
@@ -33,6 +41,9 @@ class _AppDeployTarget {
     required this.color,
     this.isSelected = true,
     this.status = 'Live',
+    this.latestVersion,
+    this.releaseUrl,
+    this.isChecking = false,
   });
 }
 
@@ -66,7 +77,7 @@ class _DbHealthViewState extends State<DbHealthView> {
       repo: 'Ngam-Teams/Ngam',
       url: 'https://ngam.dev',
       branch: 'main',
-      currentVersion: 'v1.3.4',
+      currentVersion: 'v1.0.27',
       icon: HugeIcons.strokeRoundedSmartPhone01,
       color: const Color(0xFF6C63FF),
       isSelected: true,
@@ -79,7 +90,7 @@ class _DbHealthViewState extends State<DbHealthView> {
       repo: 'Ngam-Teams/Ngam_Business',
       url: 'https://business.ngam.dev',
       branch: 'main',
-      currentVersion: 'v1.2.0',
+      currentVersion: 'v1.0.21',
       icon: HugeIcons.strokeRoundedStore01,
       color: const Color(0xFF42A5F5),
       isSelected: true,
@@ -90,13 +101,13 @@ class _DbHealthViewState extends State<DbHealthView> {
       name: 'Ngam Teams',
       subtitle: 'Aplikasi pekerja, komisen, paparan dapur (KDS) & kehadiran',
       repo: 'Ngam-Teams/Ngam_Teams',
-      url: 'Android APK • PWA Web',
+      url: 'https://teams.ngam.dev',
       branch: 'main',
-      currentVersion: 'v1.0.8',
+      currentVersion: 'v0.1.19',
       icon: HugeIcons.strokeRoundedUserGroup,
       color: const Color(0xFF10B981),
       isSelected: false,
-      status: 'Ready',
+      status: 'Live',
     ),
     _AppDeployTarget(
       id: 'admin',
@@ -105,7 +116,7 @@ class _DbHealthViewState extends State<DbHealthView> {
       repo: 'Ngam-Teams/Ngam_Admin',
       url: 'https://admin.ngam.dev',
       branch: 'main',
-      currentVersion: 'v1.0.2',
+      currentVersion: 'v0.1.18',
       icon: HugeIcons.strokeRoundedShield01,
       color: const Color(0xFFEF4444),
       isSelected: false,
@@ -117,9 +128,56 @@ class _DbHealthViewState extends State<DbHealthView> {
   void initState() {
     super.initState();
     _fetchStats();
+    _fetchAllAppReleases();
     _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
       _fetchStats();
     });
+  }
+
+  Future<void> _fetchAllAppReleases() async {
+    if (!mounted) return;
+    setState(() {
+      for (final a in _apps) {
+        a.isChecking = true;
+      }
+    });
+    await Future.wait(_apps.map(_fetchLatestReleaseForApp));
+    if (!mounted) return;
+    setState(() {});
+  }
+
+  Future<void> _fetchLatestReleaseForApp(_AppDeployTarget app) async {
+    try {
+      final uri = Uri.parse(
+        'https://api.github.com/repos/${app.repo}/releases/latest',
+      );
+      final response = await http
+          .get(
+            uri,
+            headers: kIsWeb
+                ? const {'Accept': 'application/vnd.github.v3+json'}
+                : const {
+                    'User-Agent': 'NgamAdminApp',
+                    'Accept': 'application/vnd.github.v3+json',
+                  },
+          )
+          .timeout(const Duration(seconds: 8));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body) as Map<String, dynamic>;
+        final tag = (data['tag_name'] as String? ?? '').trim();
+        final htmlUrl = data['html_url'] as String?;
+        if (tag.isNotEmpty) {
+          app.latestVersion = tag.startsWith('v') ? tag : 'v$tag';
+        }
+        if (htmlUrl != null && htmlUrl.isNotEmpty) {
+          app.releaseUrl = htmlUrl;
+        }
+      }
+    } catch (e) {
+      debugPrint('Failed checking release for ${app.repo}: $e');
+    } finally {
+      app.isChecking = false;
+    }
   }
 
   Future<void> _fetchStats() async {
@@ -415,6 +473,82 @@ class _DbHealthViewState extends State<DbHealthView> {
                   ),
                   if (isDesktop) ...[
                     const SizedBox(width: 16),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextButton.icon(
+                          onPressed: _fetchAllAppReleases,
+                          icon: const Icon(
+                            Icons.refresh_rounded,
+                            color: Color(0xFF6C63FF),
+                            size: 17,
+                          ),
+                          label: const Text(
+                            'Semak Versi',
+                            style: TextStyle(
+                              color: Color(0xFF6C63FF),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                        TextButton.icon(
+                          onPressed: () {
+                            setState(() {
+                              final allSelected =
+                                  _apps.every((a) => a.isSelected);
+                              for (final a in _apps) {
+                                a.isSelected = !allSelected;
+                              }
+                            });
+                          },
+                          icon: Icon(
+                            _apps.every((a) => a.isSelected)
+                                ? Icons.check_box_rounded
+                                : Icons.check_box_outline_blank_rounded,
+                            color: const Color(0xFF4ECDC4),
+                            size: 18,
+                          ),
+                          label: Text(
+                            _apps.every((a) => a.isSelected)
+                                ? 'Batal Semua'
+                                : 'Pilih Semua',
+                            style: const TextStyle(
+                              color: Color(0xFF4ECDC4),
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+
+              const SizedBox(height: 20),
+
+              // Mobile Select All row
+              if (!isDesktop) ...[
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton.icon(
+                      onPressed: _fetchAllAppReleases,
+                      icon: const Icon(
+                        Icons.refresh_rounded,
+                        color: Color(0xFF6C63FF),
+                        size: 17,
+                      ),
+                      label: const Text(
+                        'Semak Versi',
+                        style: TextStyle(
+                          color: Color(0xFF6C63FF),
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
                     TextButton.icon(
                       onPressed: () {
                         setState(() {
@@ -432,7 +566,9 @@ class _DbHealthViewState extends State<DbHealthView> {
                         size: 18,
                       ),
                       label: Text(
-                        _apps.every((a) => a.isSelected) ? 'Batal Semua' : 'Pilih Semua',
+                        _apps.every((a) => a.isSelected)
+                            ? 'Batal Semua'
+                            : 'Pilih Semua',
                         style: const TextStyle(
                           color: Color(0xFF4ECDC4),
                           fontSize: 12.5,
@@ -441,40 +577,6 @@ class _DbHealthViewState extends State<DbHealthView> {
                       ),
                     ),
                   ],
-                ],
-              ),
-
-              const SizedBox(height: 20),
-
-              // Mobile Select All row
-              if (!isDesktop) ...[
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        final allSelected = _apps.every((a) => a.isSelected);
-                        for (final a in _apps) {
-                          a.isSelected = !allSelected;
-                        }
-                      });
-                    },
-                    icon: Icon(
-                      _apps.every((a) => a.isSelected)
-                          ? Icons.check_box_rounded
-                          : Icons.check_box_outline_blank_rounded,
-                      color: const Color(0xFF4ECDC4),
-                      size: 18,
-                    ),
-                    label: Text(
-                      _apps.every((a) => a.isSelected) ? 'Batal Semua' : 'Pilih Semua',
-                      style: const TextStyle(
-                        color: Color(0xFF4ECDC4),
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
                 ),
                 const SizedBox(height: 8),
               ],
@@ -610,6 +712,12 @@ class _DbHealthViewState extends State<DbHealthView> {
   }
 
   Widget _buildAppRow(_AppDeployTarget app, bool isDesktop) {
+    final String activeVer = app.id == 'admin'
+        ? 'v${AppUpdateService.versionNotifier.value}'
+        : app.currentVersion;
+    final bool hasNewer = app.latestVersion != null &&
+        AppUpdateService.isNewerVersion(app.latestVersion!, activeVer);
+
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
@@ -651,22 +759,40 @@ class _DbHealthViewState extends State<DbHealthView> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  crossAxisAlignment: WrapCrossAlignment.center,
                   children: [
-                    Flexible(
-                      child: Text(
-                        app.name,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: -0.2,
+                    Text(
+                      app.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: -0.2,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: app.color.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(6),
+                        border: Border.all(
+                          color: app.color.withValues(alpha: 0.3),
                         ),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
+                      ),
+                      child: Text(
+                        activeVer,
+                        style: TextStyle(
+                          color: app.color,
+                          fontSize: 10,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
                       decoration: BoxDecoration(
@@ -717,17 +843,100 @@ class _DbHealthViewState extends State<DbHealthView> {
                         ],
                       ),
                     ),
+                    if (app.isChecking)
+                      const SizedBox(
+                        width: 11,
+                        height: 11,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: Colors.white54,
+                        ),
+                      )
+                    else if (hasNewer)
+                      InkWell(
+                        onTap: () async {
+                          final target = app.releaseUrl ??
+                              'https://github.com/${app.repo}/releases/latest';
+                          final uri = Uri.parse(target);
+                          if (await canLaunchUrl(uri)) {
+                            await launchUrl(uri,
+                                mode: LaunchMode.externalApplication);
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(6),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.amberAccent.withValues(alpha: 0.18),
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: Colors.amberAccent.withValues(alpha: 0.45),
+                            ),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(
+                                Icons.system_update_alt_rounded,
+                                size: 11,
+                                color: Colors.amberAccent,
+                              ),
+                              const SizedBox(width: 4),
+                              Text(
+                                'Update ${app.latestVersion} tersedia',
+                                style: const TextStyle(
+                                  color: Colors.amberAccent,
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else if (app.latestVersion != null)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 7, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF4ECDC4).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                          border: Border.all(
+                            color:
+                                const Color(0xFF4ECDC4).withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: const Text(
+                          'Terkini',
+                          style: TextStyle(
+                            color: Color(0xFF4ECDC4),
+                            fontSize: 10,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
                   ],
                 ),
                 const SizedBox(height: 4),
+                Text(
+                  app.subtitle,
+                  style: TextStyle(
+                    color: Colors.white.withValues(alpha: 0.55),
+                    fontSize: 11.5,
+                  ),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                ),
+                const SizedBox(height: 2),
                 Row(
                   children: [
                     Flexible(
                       child: Text(
                         app.url,
                         style: TextStyle(
-                          color: Colors.white.withValues(alpha: 0.5),
-                          fontSize: 11.5,
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 11,
                         ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,

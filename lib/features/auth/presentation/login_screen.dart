@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import '../../../core/services/app_update_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -23,6 +24,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
+    AppUpdateService.getAppVersion();
+    AppUpdateService.checkForUpdate();
     _fadeController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 800),
@@ -310,6 +313,80 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                                 ),
                               ),
+                            ),
+                            const SizedBox(height: 20),
+                            ValueListenableBuilder<String>(
+                              valueListenable: AppUpdateService.versionNotifier,
+                              builder: (context, ver, _) {
+                                return ValueListenableBuilder<AppReleaseInfo?>(
+                                  valueListenable:
+                                      AppUpdateService.availableUpdateNotifier,
+                                  builder: (context, update, _) {
+                                    final hasUpdate = update != null;
+                                    final Color statusColor = hasUpdate
+                                        ? Colors.amberAccent
+                                        : const Color(0xFF4ECDC4);
+                                    return Tooltip(
+                                      message: 'Klik untuk semak info kemas kini',
+                                      child: InkWell(
+                                        onTap: () {
+                                          if (update != null) {
+                                            AppUpdateService.showUpdateDialog(
+                                                context, update);
+                                          } else {
+                                            AppUpdateService.checkManually(context);
+                                          }
+                                        },
+                                        borderRadius: BorderRadius.circular(20),
+                                        child: Container(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 12,
+                                            vertical: 5,
+                                          ),
+                                          decoration: BoxDecoration(
+                                            color: statusColor.withValues(
+                                              alpha: hasUpdate ? 0.16 : 0.08,
+                                            ),
+                                            borderRadius:
+                                                BorderRadius.circular(20),
+                                            border: Border.all(
+                                              color: statusColor.withValues(
+                                                alpha: hasUpdate ? 0.45 : 0.22,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              Container(
+                                                width: 6,
+                                                height: 6,
+                                                decoration: BoxDecoration(
+                                                  color: statusColor,
+                                                  shape: BoxShape.circle,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 6),
+                                              Text(
+                                                hasUpdate
+                                                    ? 'Ngam Admin v$ver • Update v${update.version}'
+                                                    : 'Ngam Admin v$ver • TERKINI',
+                                                style: TextStyle(
+                                                  color: hasUpdate
+                                                      ? Colors.amberAccent
+                                                      : Colors.white60,
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  },
+                                );
+                              },
                             ),
                           ],
                         ),

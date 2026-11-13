@@ -18,21 +18,69 @@
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <title>Ngam Admin | Super Admin Console</title>
+  <meta name="title" content="Ngam Admin | Super Admin Console">
+  <meta name="description" content="Konsol pentadbir utama Ngam. Pantau kelulusan rakan niaga, keselamatan DB, status perkhidmatan dan pelepasan versi platform.">
+  <meta name="author" content="Ngam Digital Platform">
+  <meta name="app-version" content="0.1.18">
+  <meta name="theme-color" content="#0A0A14">
+  <link rel="canonical" href="https://admin.ngam.dev/">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Ngam Admin">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>Ngam Admin</title>
   <link rel="manifest" href="manifest.json">
+  <script>
+    window.ngamReloadPwa = function(versionTag) {
+      try {
+        var ver = versionTag || Date.now().toString();
+        var doReload = function() {
+          try {
+            var url = new URL(window.location.href);
+            url.searchParams.set('_v', ver);
+            window.location.replace(url.toString());
+          } catch (e) {
+            window.location.reload();
+          }
+        };
+        var tasks = [];
+        if ('serviceWorker' in navigator && navigator.serviceWorker.getRegistrations) {
+          tasks.push(
+            navigator.serviceWorker.getRegistrations().then(function(regs) {
+              return Promise.all(regs.map(function(reg) {
+                return reg.unregister();
+              }));
+            }).catch(function() {})
+          );
+        }
+        if ('caches' in window && window.caches && window.caches.keys) {
+          tasks.push(
+            window.caches.keys().then(function(keys) {
+              return Promise.all(keys.map(function(k) {
+                return window.caches.delete(k);
+              }));
+            }).catch(function() {})
+          );
+        }
+        if (tasks.length > 0) {
+          Promise.all(tasks).finally(doReload);
+        } else {
+          doReload();
+        }
+      } catch (e) {
+        window.location.reload();
+      }
+    };
+  </script>
 </head>
-<body>
+<body style="background-color: #0A0A14;">
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>

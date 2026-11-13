@@ -203,7 +203,7 @@ class _DbHealthViewState extends State<DbHealthView> {
 
     showGlassToast(
       context,
-      '✅ Binaan Cloud dimulakan! Aplikasi terpilih sedang dikemaskini di server.',
+      '✅ Binaan Cloud dimulakan! Aplikasi terpilih sedang dikemas kini di server.',
     );
   }
 

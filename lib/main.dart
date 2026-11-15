@@ -14,6 +14,7 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 import 'core/router/app_router.dart';
 import 'core/services/app_update_service.dart';
+import 'widgets/responsive_landscape_scale.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -112,6 +113,9 @@ class _NgamAdminAppState extends State<NgamAdminApp> {
               ),
             ),
           ),
+          builder: (context, child) => child != null
+              ? ResponsiveLandscapeScale(child: child)
+              : const SizedBox.shrink(),
         );
       },
     );

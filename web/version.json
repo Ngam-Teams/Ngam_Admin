@@ -1,6 +1,6 @@
 {
-  "version": "0.1.18",
-  "build_number": 1,
-  "released_at": "2026-11-13T12:00:00Z",
-  "changelog": "Kemas kini konsol pentadbir dan status semakan versi."
+  "version": "0.1.19",
+  "build_number": 2,
+  "released_at": "2026-11-15T10:00:00Z",
+  "changelog": "Penambahan skala paparan landskap automatik penuh skrin (100% viewport), PWA manifest orientasi bebas, dan konfigurasi laluan SPA."
 }

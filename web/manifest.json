@@ -1,12 +1,12 @@
 {
-    "name": "ngam_admin",
-    "short_name": "ngam_admin",
+    "name": "Ngam Admin",
+    "short_name": "Ngam Admin",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0A0A14",
     "theme_color": "#0A0A14",
-    "description": "A new Flutter project.",
-    "orientation": "portrait-primary",
+    "description": "Konsol pentadbir utama Ngam. Pantau kelulusan rakan niaga, keselamatan DB, status perkhidmatan dan pelepasan versi platform.",
+    "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {

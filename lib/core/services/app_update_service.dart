@@ -29,7 +29,7 @@ class AppReleaseInfo {
 }
 
 class AppUpdateService {
-  static const String fallbackVersion = '0.1.18';
+  static const String fallbackVersion = '0.1.19';
   static String? _cachedVersion;
   static bool _startupDialogShown = false;
 

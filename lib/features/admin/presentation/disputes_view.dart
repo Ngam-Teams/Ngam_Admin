@@ -258,9 +258,10 @@ class _DisputesViewState extends State<DisputesView> {
               final isWide = constraints.maxWidth >= 960;
 
               if (isWide) {
-                selected ??= filtered.isNotEmpty
-                    ? filtered.first
-                    : (all.isNotEmpty ? all.first : null);
+                final wideSelected = selected ??
+                    (filtered.isNotEmpty
+                        ? filtered.first
+                        : (all.isNotEmpty ? all.first : null));
                 return Column(
                   children: [
                     _buildHeader(context, all),
@@ -275,9 +276,9 @@ class _DisputesViewState extends State<DisputesView> {
                           ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: selected == null
+                            child: wideSelected == null
                                 ? _buildEmptyWorkspace()
-                                : _buildAdjudicationWorkspace(selected!, isWide),
+                                : _buildAdjudicationWorkspace(wideSelected, isWide),
                           ),
                         ],
                       ),
@@ -287,8 +288,8 @@ class _DisputesViewState extends State<DisputesView> {
               }
 
               // Mobile / Narrow layout
-              if (selected != null) {
-                final active = selected;
+              final active = selected;
+              if (active != null) {
                 return Column(
                   children: [
                     Row(

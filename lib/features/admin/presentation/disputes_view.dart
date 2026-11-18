@@ -288,6 +288,7 @@ class _DisputesViewState extends State<DisputesView> {
 
               // Mobile / Narrow layout
               if (selected != null) {
+                final active = selected;
                 return Column(
                   children: [
                     Row(
@@ -300,7 +301,7 @@ class _DisputesViewState extends State<DisputesView> {
                         ),
                         Expanded(
                           child: Text(
-                            'Kes #${selected['case_number'] ?? ''}',
+                            'Kes #${active['case_number'] ?? ''}',
                             style: const TextStyle(
                               color: Colors.white,
                               fontSize: 17,
@@ -312,7 +313,7 @@ class _DisputesViewState extends State<DisputesView> {
                     ),
                     const SizedBox(height: 8),
                     Expanded(
-                      child: _buildAdjudicationWorkspace(selected!, false),
+                      child: _buildAdjudicationWorkspace(active, false),
                     ),
                   ],
                 );

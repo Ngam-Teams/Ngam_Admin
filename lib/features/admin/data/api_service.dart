@@ -336,17 +336,44 @@ class ApiService {
           .maybeSingle();
       if (res != null) conv = Map<String, dynamic>.from(res);
     } else {
-      final res = await _client
-          .from('conversations')
-          .select()
-          .eq('business_id', businessId)
-          .eq('customer_id', customerId)
-          .order('updated_at', ascending: false)
-          .limit(1)
+      final participantIds = <String>{};
+      final biz = await _client
+          .from('businesses')
+          .select('owner_user_id')
+          .eq('id', businessId)
           .maybeSingle();
-      if (res != null) {
-        conv = Map<String, dynamic>.from(res);
-        targetConvId = conv['id']?.toString();
+      final ownerId = biz?['owner_user_id']?.toString();
+      if (ownerId != null && ownerId.isNotEmpty) participantIds.add(ownerId);
+
+      try {
+        final staffRows = await _client
+            .from('team_members')
+            .select('user_id')
+            .eq('business_id', businessId);
+        for (final row in (staffRows as List)) {
+          final uid = row['user_id']?.toString();
+          if (uid != null && uid.isNotEmpty) participantIds.add(uid);
+        }
+      } catch (_) {}
+
+      if (participantIds.isNotEmpty) {
+        final convRows = await _client
+            .from('conversations')
+            .select()
+            .or('user1_id.eq.$customerId,user2_id.eq.$customerId')
+            .order('updated_at', ascending: false)
+            .limit(20);
+        for (final raw in (convRows as List)) {
+          final c = Map<String, dynamic>.from(raw as Map);
+          final u1 = (c['user1_id'] ?? '').toString();
+          final u2 = (c['user2_id'] ?? '').toString();
+          final other = u1 == customerId ? u2 : u1;
+          if (participantIds.contains(other)) {
+            conv = c;
+            targetConvId = c['id']?.toString();
+            break;
+          }
+        }
       }
     }
 
@@ -378,9 +405,9 @@ class ApiService {
   }) async {
     final res = await _client.rpc('resolve_dispute_case', params: {
       'p_dispute_id': disputeId,
-      'p_verdict': verdict,
+      'p_decision': verdict,
+      'p_refund_amount': partialRefundAmount ?? 0.0,
       'p_moderator_note': moderatorNote.trim(),
-      'p_partial_refund_amount': partialRefundAmount,
     });
     if (res is Map<String, dynamic>) return res;
     if (res is Map) return Map<String, dynamic>.from(res);

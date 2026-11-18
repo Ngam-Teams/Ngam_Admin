@@ -1012,7 +1012,7 @@ class _DisputesViewState extends State<DisputesView> {
                       ? '$custName (Pelanggan)'
                       : '$bizName (Kedai / Staf • $bizId)';
                   final content = (m['content'] ?? '').toString();
-                  final mediaUrl = m['media_url']?.toString();
+                  final mediaUrl = (m['image_url'] ?? m['media_url'])?.toString();
                   final dt = DateTime.tryParse(
                           (m['created_at'] ?? '').toString())
                       ?.toLocal();

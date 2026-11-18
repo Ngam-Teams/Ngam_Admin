@@ -177,101 +177,6 @@ class _DashboardState extends State<Dashboard> {
               }),
 
               const Spacer(),
-
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14),
-                child: ValueListenableBuilder<String>(
-                  valueListenable: AppUpdateService.versionNotifier,
-                  builder: (context, ver, _) {
-                    return ValueListenableBuilder<AppReleaseInfo?>(
-                      valueListenable: AppUpdateService.availableUpdateNotifier,
-                      builder: (context, update, _) {
-                        final hasUpdate = update != null;
-                        final Color statusColor = hasUpdate
-                            ? Colors.amberAccent
-                            : const Color(0xFF10B981);
-                        return Tooltip(
-                          message: 'Klik untuk semak kemas kini',
-                          child: InkWell(
-                            onTap: () {
-                              if (update != null) {
-                                AppUpdateService.showUpdateDialog(
-                                    context, update);
-                              } else {
-                                AppUpdateService.checkManually(context);
-                              }
-                            },
-                            borderRadius: BorderRadius.circular(12),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 10,
-                                vertical: 8,
-                              ),
-                              decoration: BoxDecoration(
-                                color: statusColor.withValues(
-                                  alpha: hasUpdate ? 0.14 : 0.08,
-                                ),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(
-                                  color: statusColor.withValues(
-                                    alpha: hasUpdate ? 0.45 : 0.25,
-                                  ),
-                                ),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 7,
-                                    height: 7,
-                                    decoration: BoxDecoration(
-                                      color: statusColor,
-                                      shape: BoxShape.circle,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Text(
-                                      'Admin v$ver',
-                                      style: const TextStyle(
-                                        color: Colors.white70,
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                    ),
-                                  ),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 6,
-                                      vertical: 2,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: statusColor.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      hasUpdate
-                                          ? 'Update v${update.version}'
-                                          : 'TERKINI',
-                                      style: TextStyle(
-                                        color: statusColor,
-                                        fontSize: 9.5,
-                                        fontWeight: FontWeight.w800,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-
               const SizedBox(height: 16),
             ],
           ),
@@ -288,37 +193,64 @@ class _DashboardState extends State<Dashboard> {
     return Padding(
       padding: EdgeInsets.fromLTRB(
         isDesktop ? 32 : 16,
-        isDesktop ? 32 : 16,
+        isDesktop ? 28 : 14,
         isDesktop ? 32 : 16,
         isDesktop ? 32 : 0, // Removed extra bottom padding so content scrolls under navbar
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: [          // Top bar
+        children: [
+          // Top bar
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
+              if (_activeSubView != null) ...[
+                Material(
+                  color: Colors.transparent,
+                  child: InkWell(
+                    onTap: () => setState(() => _activeSubView = null),
+                    borderRadius: BorderRadius.circular(12),
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.06),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.10),
+                        ),
+                      ),
+                      child: const Icon(
+                        Icons.arrow_back_ios_new_rounded,
+                        color: Colors.white,
+                        size: 17,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+              ],
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
                       _pageTitle,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.w700,
-                        letterSpacing: -0.5,
+                        fontSize: isDesktop ? 26 : 21,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
-                    const SizedBox(height: 4),
+                    const SizedBox(height: 2),
                     Text(
                       'Super Admin Portal',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.4),
-                        fontSize: 14,
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: isDesktop ? 13 : 12,
+                        fontWeight: FontWeight.w500,
                       ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -331,7 +263,7 @@ class _DashboardState extends State<Dashboard> {
             ],
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 14),
 
           // Page body
           Expanded(child: _buildPageBody(isDesktop)),
@@ -763,16 +695,27 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _buildSuperAdminCommandCenter(bool isDesktop) {
-    return StreamBuilder<List<Map<String, dynamic>>>(
-      stream: Supabase.instance.client
-          .from('support_tickets')
-          .stream(primaryKey: ['id'])
-          .eq('status', 'open'),
-      builder: (context, snapshot) {
-        final openCount = snapshot.data?.length ?? 0;
-        final ticketBadge = openCount > 0 ? '$openCount Baru' : 'Live Triage';
-        final ticketBadgeColor =
-            openCount > 0 ? const Color(0xFFEF4444) : const Color(0xFF4ECDC4);
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, _) {
+        final isSignedIn = Supabase.instance.client.auth.currentUser != null;
+        return StreamBuilder<List<Map<String, dynamic>>>(
+          stream: isSignedIn
+              ? Supabase.instance.client
+                  .from('support_tickets')
+                  .stream(primaryKey: ['id'])
+                  .eq('status', 'open')
+              : null,
+          builder: (context, snapshot) {
+            final openCount = snapshot.data?.length ?? 0;
+            final ticketBadge = !isSignedIn
+                ? 'Perlu Log Masuk'
+                : (openCount > 0 ? '$openCount Baru' : 'Live Triage');
+            final ticketBadgeColor = !isSignedIn
+                ? const Color(0xFFF59E0B)
+                : (openCount > 0
+                    ? const Color(0xFFEF4444)
+                    : const Color(0xFF4ECDC4));
 
         final commands = [
           (
@@ -921,6 +864,8 @@ class _DashboardState extends State<Dashboard> {
               }
             },
           ),
+        );
+          },
         );
       },
     );
@@ -1145,89 +1090,91 @@ class _DashboardState extends State<Dashboard> {
   // ---------------------------------------------------------------------------
 
   Widget _buildTopBarActions() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        ValueListenableBuilder<String>(
-          valueListenable: AppUpdateService.versionNotifier,
-          builder: (context, ver, _) {
-            return ValueListenableBuilder<AppReleaseInfo?>(
-              valueListenable: AppUpdateService.availableUpdateNotifier,
-              builder: (context, update, _) {
-                final hasUpdate = update != null;
-                final Color statusColor =
-                    hasUpdate ? Colors.amberAccent : const Color(0xFF10B981);
-                return Tooltip(
-                  message: 'Ngam Admin v$ver — Klik untuk semak kemas kini',
-                  child: InkWell(
-                    onTap: () {
-                      if (update != null) {
-                        AppUpdateService.showUpdateDialog(context, update);
-                      } else {
-                        AppUpdateService.checkManually(context);
-                      }
-                    },
-                    borderRadius: BorderRadius.circular(10),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
+    return StreamBuilder<AuthState>(
+      stream: Supabase.instance.client.auth.onAuthStateChange,
+      builder: (context, _) {
+        final isSignedIn = Supabase.instance.client.auth.currentUser != null;
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Tooltip(
+              message: 'Tiket & Laporan Bug',
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () => setState(() => _activeSubView = 'tickets'),
+                  borderRadius: BorderRadius.circular(12),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.06),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: Colors.white.withValues(alpha: 0.09),
                       ),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(
-                          alpha: hasUpdate ? 0.16 : 0.08,
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(
-                          color: statusColor.withValues(
-                            alpha: hasUpdate ? 0.45 : 0.25,
-                          ),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: statusColor,
-                              shape: BoxShape.circle,
-                            ),
-                          ),
-                          const SizedBox(width: 5),
-                          Text(
-                            hasUpdate
-                                ? 'Update v${update.version}'
-                                : 'v$ver • TERKINI',
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 10.5,
-                              fontWeight: FontWeight.w700,
-                              letterSpacing: 0.2,
-                            ),
-                          ),
-                        ],
+                    ),
+                    child: const Center(
+                      child: HugeIcon(
+                        icon: HugeIcons.strokeRoundedNotification02,
+                        color: Colors.white70,
+                        size: 19,
+                        strokeWidth: 2.1,
                       ),
                     ),
                   ),
-                );
-              },
-            );
-          },
-        ),
-        const SizedBox(width: 4),
-        IconButton(
-          icon: const HugeIcon(icon: HugeIcons.strokeRoundedNotification02, color: Colors.white54, size: 20, strokeWidth: 2.1),
-          onPressed: () {},
-        ),
-        const SizedBox(width: 8),
-        CircleAvatar(
-          radius: 18,
-          backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.3),
-          child: const HugeIcon(icon: HugeIcons.strokeRoundedUser, color: Color(0xFF6C63FF), size: 18, strokeWidth: 2.1),
-        ),
-      ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Tooltip(
+              message: isSignedIn
+                  ? 'Profil & Tetapan'
+                  : 'Log Masuk / Tetapan',
+              child: InkWell(
+                onTap: () => setState(() {
+                  _selectedIndex = 4;
+                  _activeSubView = null;
+                }),
+                borderRadius: BorderRadius.circular(20),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    CircleAvatar(
+                      radius: 19,
+                      backgroundColor: const Color(0xFF6C63FF).withValues(alpha: 0.25),
+                      child: const HugeIcon(
+                        icon: HugeIcons.strokeRoundedUser,
+                        color: Color(0xFF9C96FF),
+                        size: 18,
+                        strokeWidth: 2.1,
+                      ),
+                    ),
+                    Positioned(
+                      right: -1,
+                      bottom: -1,
+                      child: Container(
+                        width: 11,
+                        height: 11,
+                        decoration: BoxDecoration(
+                          color: isSignedIn
+                              ? const Color(0xFF10B981)
+                              : const Color(0xFFF59E0B),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: const Color(0xFF0A0A14),
+                            width: 2,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 }

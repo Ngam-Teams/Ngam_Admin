@@ -1,6 +1,6 @@
 {
-  "version": "0.1.21",
-  "build_number": 4,
-  "released_at": "2026-11-18T14:15:00Z",
-  "changelog": "Pembaikan konfigurasi CI Flutter 3.47.7 untuk binaan APK Android & keluaran rasmi v0.1.21 (termasuk Pusat Tiket & Lapor Bug)."
+  "version": "0.1.22",
+  "build_number": 5,
+  "released_at": "2026-11-18T14:55:00Z",
+  "changelog": "Pembaikan ralat akses tiket sokongan (RLS auth guard + log masuk terus), label versi dipindahkan ke halaman Tetapan Profil sahaja, serta reka bentuk moden Pusat Tiket & Lapor Bug."
 }

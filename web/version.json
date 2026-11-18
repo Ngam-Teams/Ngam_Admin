@@ -1,6 +1,6 @@
 {
-  "version": "0.1.22",
-  "build_number": 5,
-  "released_at": "2026-11-18T14:55:00Z",
-  "changelog": "Pembaikan ralat akses tiket sokongan (RLS auth guard + log masuk terus), label versi dipindahkan ke halaman Tetapan Profil sahaja, serta reka bentuk moden Pusat Tiket & Lapor Bug."
+  "version": "0.1.23",
+  "build_number": 6,
+  "released_at": "2026-11-18T18:10:00Z",
+  "changelog": "Pusat Pertikaian (Pemerhati & Penentu) dengan pemantauan chat asal kedai-pelanggan, bilik mediasi 3-hala masa nyata, dan keputusan muktamad escrow (refund penuh/separa atau pelepasan dana)."
 }

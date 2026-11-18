@@ -261,6 +261,133 @@ class ApiService {
   }
 
   // ---------------------------------------------------------------------------
+  // Disputes Center — Pemerhati (Observer) & Penentu (Adjudicator)
+  // ---------------------------------------------------------------------------
+
+  Future<List<Map<String, dynamic>>> fetchAllDisputes() async {
+    final res = await _client
+        .from('disputes')
+        .select()
+        .order('created_at', ascending: false);
+    return (res as List)
+        .map((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+  }
+
+  Stream<List<Map<String, dynamic>>> watchDisputes() {
+    return _client
+        .from('disputes')
+        .stream(primaryKey: ['id'])
+        .order('created_at', ascending: false)
+        .map((rows) =>
+            rows.map((e) => Map<String, dynamic>.from(e)).toList());
+  }
+
+  Stream<List<Map<String, dynamic>>> watchDisputeMessages(String disputeId) {
+    return _client
+        .from('dispute_messages')
+        .stream(primaryKey: ['id'])
+        .eq('dispute_id', disputeId)
+        .order('created_at', ascending: true)
+        .map((rows) =>
+            rows.map((e) => Map<String, dynamic>.from(e)).toList());
+  }
+
+  Future<void> sendModeratorMessage({
+    required String disputeId,
+    required String message,
+    List<String> attachments = const [],
+  }) async {
+    final uid = _client.auth.currentUser?.id;
+    await _client.from('dispute_messages').insert({
+      'dispute_id': disputeId,
+      'sender_id': uid,
+      'sender_role': 'moderator',
+      'sender_name': 'Admin Ngam (Mediator)',
+      'message': message.trim(),
+      'attachments': attachments,
+    });
+  }
+
+  Future<void> enterModerationAsObserver(String disputeId, {String? note}) async {
+    await _client.rpc('escalate_dispute_case', params: {
+      'p_dispute_id': disputeId,
+      'p_note': note ?? 'Admin Ngam telah menyertai bilik mediasi sebagai Pemerhati & Penentu.',
+    });
+  }
+
+  /// Observer Mode: Fetches the original 2-way conversation & message history
+  /// between customer and business using Super Admin read-only RLS.
+  Future<Map<String, dynamic>> fetchOriginalConversationMessages({
+    String? conversationId,
+    required String businessId,
+    required String customerId,
+  }) async {
+    Map<String, dynamic>? conv;
+    String? targetConvId = (conversationId != null && conversationId.isNotEmpty)
+        ? conversationId
+        : null;
+
+    if (targetConvId != null) {
+      final res = await _client
+          .from('conversations')
+          .select()
+          .eq('id', targetConvId)
+          .maybeSingle();
+      if (res != null) conv = Map<String, dynamic>.from(res);
+    } else {
+      final res = await _client
+          .from('conversations')
+          .select()
+          .eq('business_id', businessId)
+          .eq('customer_id', customerId)
+          .order('updated_at', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      if (res != null) {
+        conv = Map<String, dynamic>.from(res);
+        targetConvId = conv['id']?.toString();
+      }
+    }
+
+    if (targetConvId == null || targetConvId.isEmpty) {
+      return {'conversation': null, 'messages': <Map<String, dynamic>>[]};
+    }
+
+    final msgs = await _client
+        .from('messages')
+        .select()
+        .eq('conversation_id', targetConvId)
+        .order('created_at', ascending: true)
+        .limit(200);
+
+    return {
+      'conversation': conv,
+      'messages': (msgs as List)
+          .map((e) => Map<String, dynamic>.from(e as Map))
+          .toList(),
+    };
+  }
+
+  /// Adjudicator Mode: Executes atomic verdict (refund_full | refund_partial | release_business).
+  Future<Map<String, dynamic>> resolveDisputeCase({
+    required String disputeId,
+    required String verdict,
+    required String moderatorNote,
+    double? partialRefundAmount,
+  }) async {
+    final res = await _client.rpc('resolve_dispute_case', params: {
+      'p_dispute_id': disputeId,
+      'p_verdict': verdict,
+      'p_moderator_note': moderatorNote.trim(),
+      'p_partial_refund_amount': partialRefundAmount,
+    });
+    if (res is Map<String, dynamic>) return res;
+    if (res is Map) return Map<String, dynamic>.from(res);
+    return {'success': true};
+  }
+
+  // ---------------------------------------------------------------------------
   // Internal helper
   // ---------------------------------------------------------------------------
 

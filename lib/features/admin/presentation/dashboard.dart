@@ -24,6 +24,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import 'platform_revenue_view.dart';
 import 'subscription_manager_view.dart';
 import 'support_tickets_view.dart';
+import 'disputes_view.dart';
 import 'widgets/bottom_nav.dart';
 import '../../../core/services/app_update_service.dart';
 
@@ -282,6 +283,7 @@ class _DashboardState extends State<Dashboard> {
         'revenue' => 'Revenue & Take-Rate',
         'subscriptions' => 'Plans & Overrides',
         'tickets' => 'Pusat Tiket & Lapor Bug',
+        'disputes' => 'Pusat Pertikaian (Pemerhati & Penentu)',
         _ => 'Super Admin',
       };
     }
@@ -305,6 +307,7 @@ class _DashboardState extends State<Dashboard> {
         'revenue' => PlatformRevenueView(onBack: () => setState(() => _activeSubView = null)),
         'subscriptions' => SubscriptionManagerView(onBack: () => setState(() => _activeSubView = null)),
         'tickets' => SupportTicketsView(onBack: () => setState(() => _activeSubView = null)),
+        'disputes' => DisputesView(onBack: () => setState(() => _activeSubView = null)),
         _ => _buildOverviewPage(isDesktop),
       };
     }
@@ -783,6 +786,43 @@ class _DashboardState extends State<Dashboard> {
           ),
         ];
 
+        final disputesCard = StreamBuilder<List<Map<String, dynamic>>>(
+          stream: isSignedIn ? ApiService().watchDisputes() : null,
+          builder: (context, dispSnap) {
+            final allDisp = dispSnap.data ?? const <Map<String, dynamic>>[];
+            final activeDisp = allDisp.where((d) {
+              final st = (d['status'] ?? '').toString();
+              return !st.startsWith('resolved_') && st != 'withdrawn';
+            }).length;
+            final medDisp = allDisp.where((d) {
+              final st = (d['status'] ?? '').toString();
+              return st == 'escalated' || st == 'under_review';
+            }).length;
+            final dispBadge = !isSignedIn
+                ? 'Perlu Log Masuk'
+                : (medDisp > 0
+                    ? '$medDisp Mediator'
+                    : (activeDisp > 0 ? '$activeDisp Aktif' : 'Pemerhati'));
+
+            return _buildCommandCard((
+              title: 'Pusat Pertikaian (Pemerhati & Penentu)',
+              subtitle:
+                  'Pantau chat asal kedai-pelanggan, sertai mediasi 3-hala & putuskan escrow',
+              icon: HugeIcons.strokeRoundedLegal01,
+              color: const Color(0xFFF59E0B),
+              badge: dispBadge,
+              badgeColor: !isSignedIn
+                  ? const Color(0xFFF59E0B)
+                  : (medDisp > 0
+                      ? const Color(0xFFA855F7)
+                      : (activeDisp > 0
+                          ? const Color(0xFFF59E0B)
+                          : const Color(0xFF10B981))),
+              subView: 'disputes',
+            ));
+          },
+        );
+
         return _buildPanel(
           title: 'Pusat Kawalan Pantas Super Admin',
           icon: HugeIcons.strokeRoundedCommand,
@@ -819,7 +859,16 @@ class _DashboardState extends State<Dashboard> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildCommandCard(commands[6]),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[6])),
+                          const SizedBox(width: 12),
+                          Expanded(child: disputesCard),
+                        ],
+                      ),
+                    ),
                   ],
                 );
               } else {
@@ -858,7 +907,16 @@ class _DashboardState extends State<Dashboard> {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    _buildCommandCard(commands[6]),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[6])),
+                          const SizedBox(width: 12),
+                          Expanded(child: disputesCard),
+                        ],
+                      ),
+                    ),
                   ],
                 );
               }

@@ -1,6 +1,6 @@
 {
-  "version": "0.1.19",
-  "build_number": 2,
-  "released_at": "2026-11-15T10:00:00Z",
-  "changelog": "Penambahan skala paparan landskap automatik penuh skrin (100% viewport), PWA manifest orientasi bebas, dan konfigurasi laluan SPA."
+  "version": "0.1.20",
+  "build_number": 3,
+  "released_at": "2026-11-18T05:20:00Z",
+  "changelog": "Penambahan Pusat Tiket & Lapor Bug (triaj langsung laporan Ngam Pelanggan & Ngam Business, paparan tangkap layar bukti, serta balasan notifikasi dalam aplikasi)."
 }

@@ -19,8 +19,11 @@ import 'kyc_verification_view.dart';
 import 'payout_clearinghouse_view.dart';
 import 'impersonation_view.dart';
 import 'system_control_view.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+
 import 'platform_revenue_view.dart';
 import 'subscription_manager_view.dart';
+import 'support_tickets_view.dart';
 import 'widgets/bottom_nav.dart';
 import '../../../core/services/app_update_service.dart';
 
@@ -346,6 +349,7 @@ class _DashboardState extends State<Dashboard> {
         'killswitch' => 'Platform Controls',
         'revenue' => 'Revenue & Take-Rate',
         'subscriptions' => 'Plans & Overrides',
+        'tickets' => 'Pusat Tiket & Lapor Bug',
         _ => 'Super Admin',
       };
     }
@@ -368,6 +372,7 @@ class _DashboardState extends State<Dashboard> {
         'killswitch' => SystemControlView(onBack: () => setState(() => _activeSubView = null)),
         'revenue' => PlatformRevenueView(onBack: () => setState(() => _activeSubView = null)),
         'subscriptions' => SubscriptionManagerView(onBack: () => setState(() => _activeSubView = null)),
+        'tickets' => SupportTicketsView(onBack: () => setState(() => _activeSubView = null)),
         _ => _buildOverviewPage(isDesktop),
       };
     }
@@ -758,140 +763,166 @@ class _DashboardState extends State<Dashboard> {
   }
 
   Widget _buildSuperAdminCommandCenter(bool isDesktop) {
-    final commands = [
-      (
-        title: 'SSM & KYC Hub',
-        subtitle: 'Verifikasi pendaftaran SSM & akaun peniaga',
-        icon: HugeIcons.strokeRoundedLegal01,
-        color: const Color(0xFF6C63FF),
-        badge: '3 Menunggu',
-        badgeColor: const Color(0xFFF59E0B),
-        subView: 'kyc',
-      ),
-      (
-        title: 'DuitNow Clearing',
-        subtitle: 'Pelepasan dana escrow harian ke akaun bank',
-        icon: HugeIcons.strokeRoundedBank,
-        color: const Color(0xFF10B981),
-        badge: 'RM 42.8k',
-        badgeColor: const Color(0xFF10B981),
-        subView: 'payouts',
-      ),
-      (
-        title: 'Ghost Impersonate',
-        subtitle: 'Masuk pandangan kedai untuk bantuan teknikal',
-        icon: HugeIcons.strokeRoundedUserAccount,
-        color: const Color(0xFFF59E0B),
-        badge: '1-Klik Akses',
-        badgeColor: const Color(0xFF6C63FF),
-        subView: 'impersonation',
-      ),
-      (
-        title: 'Platform Kill-Switch',
-        subtitle: 'Suis kecemasan & mod penyelenggaraan',
-        icon: HugeIcons.strokeRoundedShield01,
-        color: const Color(0xFFEF4444),
-        badge: 'Normal 99.9%',
-        badgeColor: const Color(0xFF10B981),
-        subView: 'killswitch',
-      ),
-      (
-        title: 'Hasil & Take-Rate',
-        subtitle: 'Analisis komisen MDR 1.5% & SaaS MRR',
-        icon: HugeIcons.strokeRoundedChartIncrease,
-        color: const Color(0xFF4ECDC4),
-        badge: 'RM 40.8k Net',
-        badgeColor: const Color(0xFF4ECDC4),
-        subView: 'revenue',
-      ),
-      (
-        title: 'Plan & Overrides',
-        subtitle: 'Lanjut trial percuma, ubah tier & gantung',
-        icon: HugeIcons.strokeRoundedCrown02,
-        color: const Color(0xFF8B5CF6),
-        badge: '5 Merchant',
-        badgeColor: const Color(0xFF8B5CF6),
-        subView: 'subscriptions',
-      ),
-    ];
+    return StreamBuilder<List<Map<String, dynamic>>>(
+      stream: Supabase.instance.client
+          .from('support_tickets')
+          .stream(primaryKey: ['id'])
+          .eq('status', 'open'),
+      builder: (context, snapshot) {
+        final openCount = snapshot.data?.length ?? 0;
+        final ticketBadge = openCount > 0 ? '$openCount Baru' : 'Live Triage';
+        final ticketBadgeColor =
+            openCount > 0 ? const Color(0xFFEF4444) : const Color(0xFF4ECDC4);
 
-    return _buildPanel(
-      title: 'Pusat Kawalan Pantas Super Admin',
-      icon: HugeIcons.strokeRoundedCommand,
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final isWide = constraints.maxWidth >= 700;
+        final commands = [
+          (
+            title: 'SSM & KYC Hub',
+            subtitle: 'Verifikasi pendaftaran SSM & akaun peniaga',
+            icon: HugeIcons.strokeRoundedLegal01,
+            color: const Color(0xFF6C63FF),
+            badge: '3 Menunggu',
+            badgeColor: const Color(0xFFF59E0B),
+            subView: 'kyc',
+          ),
+          (
+            title: 'DuitNow Clearing',
+            subtitle: 'Pelepasan dana escrow harian ke akaun bank',
+            icon: HugeIcons.strokeRoundedBank,
+            color: const Color(0xFF10B981),
+            badge: 'RM 42.8k',
+            badgeColor: const Color(0xFF10B981),
+            subView: 'payouts',
+          ),
+          (
+            title: 'Ghost Impersonate',
+            subtitle: 'Masuk pandangan kedai untuk bantuan teknikal',
+            icon: HugeIcons.strokeRoundedUserAccount,
+            color: const Color(0xFFF59E0B),
+            badge: '1-Klik Akses',
+            badgeColor: const Color(0xFF6C63FF),
+            subView: 'impersonation',
+          ),
+          (
+            title: 'Platform Kill-Switch',
+            subtitle: 'Suis kecemasan & mod penyelenggaraan',
+            icon: HugeIcons.strokeRoundedShield01,
+            color: const Color(0xFFEF4444),
+            badge: 'Normal 99.9%',
+            badgeColor: const Color(0xFF10B981),
+            subView: 'killswitch',
+          ),
+          (
+            title: 'Hasil & Take-Rate',
+            subtitle: 'Analisis komisen MDR 1.5% & SaaS MRR',
+            icon: HugeIcons.strokeRoundedChartIncrease,
+            color: const Color(0xFF4ECDC4),
+            badge: 'RM 40.8k Net',
+            badgeColor: const Color(0xFF4ECDC4),
+            subView: 'revenue',
+          ),
+          (
+            title: 'Plan & Overrides',
+            subtitle: 'Lanjut trial percuma, ubah tier & gantung',
+            icon: HugeIcons.strokeRoundedCrown02,
+            color: const Color(0xFF8B5CF6),
+            badge: '5 Merchant',
+            badgeColor: const Color(0xFF8B5CF6),
+            subView: 'subscriptions',
+          ),
+          (
+            title: 'Pusat Tiket & Lapor Bug',
+            subtitle: 'Triaj laporan pepijat, bukti tangkap layar & maklum balas pengguna/peniaga',
+            icon: HugeIcons.strokeRoundedCustomerSupport,
+            color: const Color(0xFF4ECDC4),
+            badge: ticketBadge,
+            badgeColor: ticketBadgeColor,
+            subView: 'tickets',
+          ),
+        ];
 
-          if (isWide) {
-            return Column(
-              children: [
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _buildCommandCard(commands[0])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[1])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[2])),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _buildCommandCard(commands[3])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[4])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[5])),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          } else {
-            return Column(
-              children: [
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _buildCommandCard(commands[0])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[1])),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _buildCommandCard(commands[2])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[3])),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 12),
-                IntrinsicHeight(
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      Expanded(child: _buildCommandCard(commands[4])),
-                      const SizedBox(width: 12),
-                      Expanded(child: _buildCommandCard(commands[5])),
-                    ],
-                  ),
-                ),
-              ],
-            );
-          }
-        },
-      ),
+        return _buildPanel(
+          title: 'Pusat Kawalan Pantas Super Admin',
+          icon: HugeIcons.strokeRoundedCommand,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final isWide = constraints.maxWidth >= 700;
+
+              if (isWide) {
+                return Column(
+                  children: [
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[0])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[1])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[2])),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[3])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[4])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[5])),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCommandCard(commands[6]),
+                  ],
+                );
+              } else {
+                return Column(
+                  children: [
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[0])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[1])),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[2])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[3])),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    IntrinsicHeight(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Expanded(child: _buildCommandCard(commands[4])),
+                          const SizedBox(width: 12),
+                          Expanded(child: _buildCommandCard(commands[5])),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    _buildCommandCard(commands[6]),
+                  ],
+                );
+              }
+            },
+          ),
+        );
+      },
     );
   }
 
@@ -1031,6 +1062,12 @@ class _DashboardState extends State<Dashboard> {
             label: 'Subscription Plan Manager',
             icon: HugeIcons.strokeRoundedCrown02,
             onTap: () => setState(() => _activeSubView = 'subscriptions'),
+          ),
+          const SizedBox(height: 10),
+          _QuickActionButton(
+            label: 'Pusat Tiket & Lapor Bug',
+            icon: HugeIcons.strokeRoundedCustomerSupport,
+            onTap: () => setState(() => _activeSubView = 'tickets'),
           ),
           const SizedBox(height: 10),
           _QuickActionButton(

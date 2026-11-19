@@ -9,7 +9,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:hugeicons/hugeicons.dart';
-import 'package:liquid_glass_widgets/liquid_glass_widgets.dart';
+import '../../../widgets/liquid_glass_compat.dart';
 
 import '../data/api_service.dart';
 import '../models/business_summary_model.dart';

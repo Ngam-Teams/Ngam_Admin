@@ -1,7 +1,7 @@
 name: ngam_admin
 description: "Ngam Admin – Super Admin portal for the multi-tenant SaaS ecosystem."
 publish_to: 'none'
-version: 0.1.23+6
+version: 0.1.24+7
 
 environment:
   sdk: ^3.8.1
@@ -33,19 +33,26 @@ dev_dependencies:
     sdk: flutter
   flutter_lints: ^5.0.0
   flutter_launcher_icons: ^0.14.4
+  flutter_native_splash: ^2.4.7
 
 flutter_launcher_icons:
   android: true
-  ios: false
-  web:
-    generate: true
-    image_path: "assets/app.png"
+  ios: true
   image_path: "assets/app.png"
   adaptive_icon_background: "#ffffff"
   adaptive_icon_foreground: "assets/app.png"
+
+flutter_native_splash:
+  color: "#ffffff"
+  color_dark: "#0b0b0b"
+  image: "assets/splash.png"
+  image_dark: "assets/splash.png"
+  android: true
+  ios: true
 
 flutter:
   uses-material-design: true
   assets:
     - .env
     - assets/app.png
+    - assets/splash.png

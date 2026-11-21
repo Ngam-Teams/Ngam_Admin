@@ -1,23 +1,39 @@
 {
     "name": "Ngam Admin",
     "short_name": "Ngam Admin",
-    "start_url": ".",
+    "id": "/",
+    "start_url": "/",
+    "scope": "/",
     "display": "standalone",
-    "background_color": "#0A0A14",
-    "theme_color": "#0A0A14",
+    "background_color": "#000000",
+    "theme_color": "#000000",
     "description": "Konsol pentadbir utama Ngam. Pantau kelulusan rakan niaga, keselamatan DB, status perkhidmatan dan pelepasan versi platform.",
     "orientation": "any",
     "prefer_related_applications": false,
     "icons": [
         {
+            "src": "favicon-48x48.png",
+            "sizes": "48x48",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
+            "src": "favicon-96x96.png",
+            "sizes": "96x96",
+            "type": "image/png",
+            "purpose": "any"
+        },
+        {
             "src": "icons/Icon-192.png",
             "sizes": "192x192",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-512.png",
             "sizes": "512x512",
-            "type": "image/png"
+            "type": "image/png",
+            "purpose": "any"
         },
         {
             "src": "icons/Icon-maskable-192.png",

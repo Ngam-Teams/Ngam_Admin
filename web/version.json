@@ -1,6 +1,6 @@
 {
-  "version": "0.1.24",
-  "build_number": 7,
-  "released_at": "2026-11-20T16:40:00Z",
-  "changelog": "Seragamkan ikon pelancar, tetapan splash screen natif serta skrin percikan PWA Ngam Admin mengikut rekaan rasmi Ngam."
+  "version": "0.1.25",
+  "build_number": 8,
+  "released_at": "2026-11-22T00:18:00Z",
+  "changelog": "Gantikan sidebar Ngam Admin kepada sidebar terapung Liquid Glass boleh kembang/kecil sebiji seperti Ngam & Ngam Business."
 }

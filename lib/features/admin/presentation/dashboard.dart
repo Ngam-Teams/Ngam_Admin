@@ -6,6 +6,7 @@
 
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hugeicons/hugeicons.dart';
 
 import 'package:intl/intl.dart';
@@ -30,6 +31,9 @@ import '../../../core/services/app_update_service.dart';
 
 class Dashboard extends StatefulWidget {
   const Dashboard({super.key});
+
+  /// Preserves sidebar expanded/collapsed state across tab & route changes.
+  static final ValueNotifier<bool> isExpandedNotifier = ValueNotifier<bool>(true);
 
   @override
   State<Dashboard> createState() => _DashboardState();
@@ -57,21 +61,26 @@ class _DashboardState extends State<Dashboard> {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isDesktop = constraints.maxWidth >= 800;
+        final isLandscape = constraints.maxWidth > constraints.maxHeight;
+        final isCompactHeight = constraints.maxHeight < 520;
+        final useSidebar = constraints.maxWidth >= 768 || isLandscape;
         return Scaffold(
           backgroundColor: const Color(0xFF0A0A14),
           extendBody: true,
-          bottomNavigationBar: isDesktop ? null : _buildBottomNav(),
+          bottomNavigationBar: useSidebar ? null : _buildBottomNav(),
           body: SafeArea(
             bottom: false,
-            child: isDesktop
+            child: useSidebar
                 ? Row(
                     children: [
-                      _buildNavigationRail(),
-                      Expanded(child: _buildContent(isDesktop)),
+                      _buildNavigationRail(
+                        isCompactHeight: isCompactHeight,
+                        maxAvailableWidth: constraints.maxWidth,
+                      ),
+                      Expanded(child: _buildContent(useSidebar)),
                     ],
                   )
-                : _buildContent(isDesktop),
+                : _buildContent(useSidebar),
           ),
         );
       },
@@ -95,95 +104,382 @@ class _DashboardState extends State<Dashboard> {
   }
 
   // ---------------------------------------------------------------------------
-  // Navigation Rail (frosted glass sidebar)
+  // Navigation Rail (Floating Collapsible Liquid Glass Sidebar — Ngam / Business)
   // ---------------------------------------------------------------------------
 
-  Widget _buildNavigationRail() {
-    return ClipRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
-        child: Container(
-          width: 220,
-          color: Colors.white.withValues(alpha: 0.04),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const SizedBox(height: 48),
+  Widget _buildNavigationRail({
+    bool isCompactHeight = false,
+    double maxAvailableWidth = 1000,
+  }) {
+    final user = Supabase.instance.client.auth.currentUser;
+    final String adminName = (user?.userMetadata?['full_name'] ??
+            user?.email?.split('@').first ??
+            'Super Admin')
+        .toString()
+        .trim();
+    final String adminSub = (user?.email ?? 'Super Admin Portal').toString();
+    final double expandedWidth = (maxAvailableWidth * 0.35).clamp(180.0, 260.0);
+    final double collapsedWidth = isCompactHeight ? 64.0 : 72.0;
 
-              // Logo / Wordmark
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 36,
-                      height: 36,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF6C63FF), Color(0xFF4ECDC4)],
-                        ),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: const Icon(
-                        Icons.admin_panel_settings_rounded,
-                        color: Colors.white,
-                        size: 20,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Ngam',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            letterSpacing: -0.3,
-                          ),
-                        ),
-                        Text(
-                          'Admin',
-                          style: TextStyle(
-                            color: Color(0xFF6C63FF),
-                            fontSize: 11,
-                            fontWeight: FontWeight.w600,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                      ],
+    return ValueListenableBuilder<bool>(
+      valueListenable: Dashboard.isExpandedNotifier,
+      builder: (context, isExpanded, _) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            isCompactHeight ? 10 : 16,
+            isCompactHeight ? 8 : 16,
+            0,
+            isCompactHeight ? 8 : 16,
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(isCompactHeight ? 22 : 28),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 30, sigmaY: 30),
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOutCubic,
+                width: isExpanded ? expandedWidth : collapsedWidth,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.05),
+                  borderRadius: BorderRadius.circular(isCompactHeight ? 22 : 28),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    width: 1.2,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.35),
+                      blurRadius: 24,
+                      offset: const Offset(0, 8),
                     ),
                   ],
                 ),
+                child: Column(
+                  children: [
+                    SizedBox(height: isCompactHeight ? 8 : 16),
+
+                    // Top Bar (Logo & Expand / Shrink Interactions)
+                    if (isExpanded)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        child: Row(
+                          children: [
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.asset(
+                                'assets/app.png',
+                                width: 36,
+                                height: 36,
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, __, ___) => Image.asset(
+                                  'assets/splash.png',
+                                  width: 36,
+                                  height: 36,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (_, __, ___) => Container(
+                                    width: 36,
+                                    height: 36,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF2196F3),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: const Text(
+                                      'N',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w900,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            const Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Ngam',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontSize: 16.5,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: -0.3,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                  Text(
+                                    'Admin',
+                                    style: TextStyle(
+                                      color: Color(0xFF42A5F5),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      letterSpacing: 1.2,
+                                    ),
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                ],
+                              ),
+                            ),
+                            _CollapseSidebarButton(
+                              onTap: () => Dashboard.isExpandedNotifier.value = false,
+                            ),
+                          ],
+                        ),
+                      )
+                    else
+                      _LogoExpandButton(
+                        brandName: 'Ngam Admin',
+                        onTap: () => Dashboard.isExpandedNotifier.value = true,
+                      ),
+
+                    SizedBox(height: isCompactHeight ? 8 : 14),
+
+                    // Admin Profile Section
+                    if (isExpanded)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: Material(
+                          color: Colors.transparent,
+                          borderRadius: BorderRadius.circular(12),
+                          child: InkWell(
+                            onTap: () => setState(() {
+                              _selectedIndex = 4;
+                              _activeSubView = null;
+                            }),
+                            borderRadius: BorderRadius.circular(12),
+                            hoverColor: Colors.white.withValues(alpha: 0.08),
+                            child: Container(
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: isCompactHeight ? 5 : 8,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.white.withValues(alpha: 0.05),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: Colors.white.withValues(alpha: 0.08),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  _buildAdminSidebarAvatar(
+                                    adminName,
+                                    isCompactHeight ? 14 : 17,
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Text(
+                                          adminName,
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 1.5),
+                                        Text(
+                                          adminSub,
+                                          style: TextStyle(
+                                            color: Colors.white.withValues(alpha: 0.45),
+                                            fontSize: 10.5,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(
+                                    Icons.chevron_right_rounded,
+                                    size: 16,
+                                    color: Colors.white.withValues(alpha: 0.3),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
+                      )
+                    else
+                      Tooltip(
+                        message: adminName,
+                        child: InkWell(
+                          onTap: () => setState(() {
+                            _selectedIndex = 4;
+                            _activeSubView = null;
+                          }),
+                          borderRadius: BorderRadius.circular(14),
+                          child: _buildAdminSidebarAvatar(
+                            adminName,
+                            isCompactHeight ? 16 : 19,
+                          ),
+                        ),
+                      ),
+
+                    SizedBox(height: isCompactHeight ? 6 : 12),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        height: 1,
+                      ),
+                    ),
+
+                    SizedBox(height: isCompactHeight ? 4 : 8),
+
+                    // Nav items
+                    Expanded(
+                      child: ListView.separated(
+                        padding: EdgeInsets.zero,
+                        physics: const ClampingScrollPhysics(),
+                        itemCount: _navItems.length,
+                        separatorBuilder: (_, __) => SizedBox(height: isCompactHeight ? 2 : 4),
+                        itemBuilder: (context, index) {
+                          final item = _navItems[index];
+                          final selected = index == _selectedIndex && _activeSubView == null;
+                          return _SidebarNavItem(
+                            icon: item.icon,
+                            label: item.label,
+                            selected: selected,
+                            isExpanded: isExpanded,
+                            isCompactHeight: isCompactHeight,
+                            onTap: () => setState(() {
+                              _selectedIndex = index;
+                              _activeSubView = null;
+                            }),
+                          );
+                        },
+                      ),
+                    ),
+
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      child: Divider(
+                        color: Colors.white.withValues(alpha: 0.08),
+                        height: 1,
+                      ),
+                    ),
+                    SizedBox(height: isCompactHeight ? 4 : 6),
+
+                    // Sign Out
+                    _SidebarNavItem(
+                      icon: HugeIcons.strokeRoundedLogout02,
+                      label: 'Log Keluar',
+                      selected: false,
+                      isExpanded: isExpanded,
+                      isCompactHeight: isCompactHeight,
+                      onTap: () => _confirmAdminSignOut(context),
+                    ),
+
+                    SizedBox(height: isCompactHeight ? 8 : 16),
+                  ],
+                ),
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
 
-              const SizedBox(height: 40),
-
-              // Nav items
-              ..._navItems.asMap().entries.map((entry) {
-                final index = entry.key;
-                final item = entry.value;
-                final selected = index == _selectedIndex && _activeSubView == null;
-
-                return _NavItem(
-                  icon: item.icon,
-                  label: item.label,
-                  selected: selected,
-                  onTap: () => setState(() {
-                    _selectedIndex = index;
-                    _activeSubView = null;
-                  }),
-                );
-              }),
-
-              const Spacer(),
-              const SizedBox(height: 16),
-            ],
+  Widget _buildAdminSidebarAvatar(String name, double radius) {
+    final String initial = name.isNotEmpty ? name[0].toUpperCase() : 'A';
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: radius * 2,
+          height: radius * 2,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            gradient: LinearGradient(
+              colors: [Color(0xFF42A5F5), Color(0xFF1976D2)],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            initial,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: radius * 0.88,
+              fontWeight: FontWeight.w800,
+            ),
           ),
         ),
+        Positioned(
+          right: -1,
+          bottom: -1,
+          child: Container(
+            width: 9,
+            height: 9,
+            decoration: BoxDecoration(
+              color: const Color(0xFF10B981),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: const Color(0xFF141826),
+                width: 1.5,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _confirmAdminSignOut(BuildContext context) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (dialogCtx) => AlertDialog(
+        backgroundColor: const Color(0xFF141420),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text(
+          'Log Keluar',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w700),
+        ),
+        content: const Text(
+          'Adakah anda pasti mahu log keluar daripada konsol Ngam Admin?',
+          style: TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogCtx, false),
+            child: const Text('Batal', style: TextStyle(color: Colors.white54)),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.redAccent,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            onPressed: () => Navigator.pop(dialogCtx, true),
+            child: const Text('Log Keluar'),
+          ),
+        ],
       ),
     );
+    if (confirm == true) {
+      await Supabase.instance.client.auth.signOut();
+      if (context.mounted) {
+        context.go('/login');
+      }
+    }
   }
 
   // ---------------------------------------------------------------------------
@@ -1237,52 +1533,264 @@ class _DashboardState extends State<Dashboard> {
   }
 }
 
-// ---------------------------------------------------------------------------
-// Nav Item
-// ---------------------------------------------------------------------------
+// ─────────────────────────────────────────────────────────────────────────────
+// Logo Expand Button (Gemini Style: Hover logo -> Expand icon)
+// ─────────────────────────────────────────────────────────────────────────────
+class _LogoExpandButton extends StatefulWidget {
+  final String brandName;
+  final VoidCallback onTap;
 
-class _NavItem extends StatelessWidget {
+  const _LogoExpandButton({
+    required this.brandName,
+    required this.onTap,
+  });
+
+  @override
+  State<_LogoExpandButton> createState() => _LogoExpandButtonState();
+}
+
+class _LogoExpandButtonState extends State<_LogoExpandButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: _isHovered ? 'Expand sidebar' : widget.brandName,
+      waitDuration: const Duration(milliseconds: 300),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 180),
+            width: 42,
+            height: 42,
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.transparent,
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: _isHovered
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : Colors.transparent,
+                width: 1,
+              ),
+            ),
+            alignment: Alignment.center,
+            child: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 160),
+              transitionBuilder: (child, animation) => FadeTransition(
+                opacity: animation,
+                child: ScaleTransition(scale: animation, child: child),
+              ),
+              child: _isHovered
+                  ? const HugeIcon(
+                      key: ValueKey('expand_icon'),
+                      icon: HugeIcons.strokeRoundedSidebarLeft01,
+                      color: Colors.white,
+                      size: 20,
+                      strokeWidth: 2.1,
+                    )
+                  : ClipRRect(
+                      key: const ValueKey('logo_img'),
+                      borderRadius: BorderRadius.circular(10),
+                      child: Image.asset(
+                        'assets/app.png',
+                        width: 36,
+                        height: 36,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          'assets/splash.png',
+                          width: 36,
+                          height: 36,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF2196F3),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            alignment: Alignment.center,
+                            child: const Text(
+                              'N',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Collapse Button (Gemini Style: Top right icon button to collapse sidebar)
+// ─────────────────────────────────────────────────────────────────────────────
+class _CollapseSidebarButton extends StatefulWidget {
+  final VoidCallback onTap;
+
+  const _CollapseSidebarButton({required this.onTap});
+
+  @override
+  State<_CollapseSidebarButton> createState() => _CollapseSidebarButtonState();
+}
+
+class _CollapseSidebarButtonState extends State<_CollapseSidebarButton> {
+  bool _isHovered = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: 'Collapse sidebar',
+      waitDuration: const Duration(milliseconds: 300),
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        onEnter: (_) => setState(() => _isHovered = true),
+        onExit: (_) => setState(() => _isHovered = false),
+        child: GestureDetector(
+          onTap: widget.onTap,
+          behavior: HitTestBehavior.opaque,
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 150),
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: _isHovered
+                  ? Colors.white.withValues(alpha: 0.12)
+                  : Colors.white.withValues(alpha: 0.05),
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(
+                color: _isHovered
+                    ? Colors.white.withValues(alpha: 0.18)
+                    : Colors.white.withValues(alpha: 0.08),
+                width: 1,
+              ),
+            ),
+            child: const Center(
+              child: HugeIcon(
+                icon: HugeIcons.strokeRoundedSidebarLeft,
+                color: Colors.white70,
+                size: 18,
+                strokeWidth: 2.0,
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar Nav Item (Dual Mode: Icon + Text in Expand, Icon Only in Shrink)
+// ─────────────────────────────────────────────────────────────────────────────
+class _SidebarNavItem extends StatelessWidget {
   final dynamic icon;
   final String label;
   final bool selected;
+  final bool isExpanded;
+  final bool isCompactHeight;
   final VoidCallback onTap;
 
-  const _NavItem({
+  const _SidebarNavItem({
     required this.icon,
     required this.label,
     required this.selected,
+    required this.isExpanded,
+    this.isCompactHeight = false,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    if (!isExpanded) {
+      return Tooltip(
+        message: label,
+        waitDuration: const Duration(milliseconds: 300),
+        child: Center(
+          child: InkWell(
+            onTap: onTap,
+            borderRadius: BorderRadius.circular(isCompactHeight ? 12 : 16),
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              width: isCompactHeight ? 42 : 48,
+              height: isCompactHeight ? 42 : 48,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(isCompactHeight ? 12 : 16),
+                color: selected
+                    ? const Color(0xFF42A5F5).withValues(alpha: 0.18)
+                    : Colors.transparent,
+                border: Border.all(
+                  color: selected
+                      ? const Color(0xFF42A5F5).withValues(alpha: 0.35)
+                      : Colors.transparent,
+                  width: 1,
+                ),
+              ),
+              child: Center(
+                child: HugeIcon(
+                  icon: icon,
+                  color: selected ? const Color(0xFF42A5F5) : Colors.white38,
+                  size: isCompactHeight ? 20 : 22,
+                  strokeWidth: selected ? 2.3 : 1.9,
+                ),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        margin: EdgeInsets.symmetric(horizontal: 12, vertical: isCompactHeight ? 1.5 : 3),
+        padding: EdgeInsets.symmetric(horizontal: 14, vertical: isCompactHeight ? 7 : 11),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(12),
           color: selected
-              ? const Color(0xFF6C63FF).withValues(alpha: 0.18)
+              ? const Color(0xFF42A5F5).withValues(alpha: 0.18)
               : Colors.transparent,
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF42A5F5).withValues(alpha: 0.35)
+                : Colors.transparent,
+            width: 1,
+          ),
         ),
         child: Row(
           children: [
             HugeIcon(
               icon: icon,
-              color: selected ? const Color(0xFF6C63FF) : Colors.white38,
-              size: 20,
-              strokeWidth: 2.1,
+              color: selected ? const Color(0xFF42A5F5) : Colors.white38,
+              size: isCompactHeight ? 18 : 20,
+              strokeWidth: selected ? 2.3 : 1.9,
             ),
             const SizedBox(width: 12),
-            Text(
-              label,
-              style: TextStyle(
-                color: selected ? Colors.white : Colors.white54,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
-                fontSize: 14,
+            Expanded(
+              child: Text(
+                label,
+                style: TextStyle(
+                  color: selected ? Colors.white : Colors.white54,
+                  fontWeight: selected ? FontWeight.w600 : FontWeight.normal,
+                  fontSize: isCompactHeight ? 13 : 14,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
           ],

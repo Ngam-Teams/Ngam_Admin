@@ -63,6 +63,7 @@ class _NgamAdminAppState extends State<NgamAdminApp> {
       builder: (context, snapshot) {
         if (snapshot.connectionState != ConnectionState.done) {
           return MaterialApp(
+            title: 'Ngam Admin',
             debugShowCheckedModeBanner: false,
             theme: ThemeData(
               brightness: Brightness.dark,

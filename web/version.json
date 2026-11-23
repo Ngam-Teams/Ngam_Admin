@@ -1,6 +1,6 @@
 {
-  "version": "0.1.26",
-  "build_number": 9,
-  "released_at": "2026-11-23T07:05:11Z",
-  "changelog": "Tambah git hook automatik (.githooks) untuk menaikkan versi pubspec.yaml, web/version.json & AppUpdateService pada setiap commit."
+  "version": "0.1.27",
+  "build_number": 10,
+  "released_at": "2026-11-23T10:15:46Z",
+  "changelog": "Kemas kini metadata Google Search Site Name (WebSite JSON-LD, og:site_name & application-name) supaya hasil carian memaparkan 'Ngam Admin'."
 }

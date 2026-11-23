@@ -245,21 +245,39 @@ class _KycVerificationViewState extends State<KycVerificationView> {
     return Column(
       children: [
         // Search
-        ClipRRect(
-          borderRadius: BorderRadius.circular(14),
-          child: Container(
+        Container(
+          height: 48,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.06),
-            child: TextField(
-              style: const TextStyle(color: Colors.white),
-              onChanged: (val) => setState(() => _searchQuery = val),
-              decoration: InputDecoration(
-                hintText: 'Cari nama bisnes, no SSM, nama pemilik...',
-                hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13),
-                prefixIcon: const Icon(Icons.search_rounded, color: Colors.white54, size: 20),
-                border: InputBorder.none,
-                contentPadding: const EdgeInsets.symmetric(vertical: 14),
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.14)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, color: Colors.white54, size: 19),
+              const SizedBox(width: 12),
+              Expanded(
+                child: TextField(
+                  style: const TextStyle(color: Colors.white, fontSize: 13.5),
+                  onChanged: (val) => setState(() => _searchQuery = val),
+                  decoration: InputDecoration(
+                    hintText: 'Cari nama bisnes, no SSM, nama pemilik...',
+                    hintStyle: TextStyle(color: Colors.white.withValues(alpha: 0.35), fontSize: 13.5),
+                    filled: false,
+                    fillColor: Colors.transparent,
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
+                    border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                  ),
+                ),
               ),
-            ),
+            ],
           ),
         ),
         const SizedBox(height: 12),

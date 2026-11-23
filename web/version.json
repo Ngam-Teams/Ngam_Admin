@@ -1,6 +1,6 @@
 {
-  "version": "0.1.27",
-  "build_number": 10,
-  "released_at": "2026-11-23T10:15:46Z",
-  "changelog": "Kemas kini metadata Google Search Site Name (WebSite JSON-LD, og:site_name & application-name) supaya hasil carian memaparkan 'Ngam Admin'."
+  "version": "0.1.28",
+  "build_number": 11,
+  "released_at": "2026-11-23T14:57:00Z",
+  "changelog": "Seragamkan semua bar carian merentasi Ngam Admin kepada ketinggian 48px lutsinar tanpa latar isi atau garisan fokus dalaman."
 }
